@@ -5,10 +5,10 @@
 #include <vector>
 
 struct vertex_infos {
-    cgp::vec3 velocity;
-    cgp::vec3 force; 
-    std::vector<int> neightbors; 
-    std::vector<float> neightbors_forces;
+    cgp::vec3 velocity = vec3(0, 0, 0);
+    cgp::vec3 force = vec3(0, 0, 0);; 
+    std::vector<int> neighbors_direct;
+    std::vector<int> neighbors_diag;  
 };
 
 // Stores the buffers representing the cloth vertices
@@ -19,8 +19,6 @@ struct cloth_structure
     // Buffers are stored as 2D grid that can be accessed as grid(ku,kv)
     
     numarray<cgp::vec3> position;  
-    //std::vector<cgp::vec3> velocity;  
-    //std::vector<cgp::vec3> force;
     numarray<cgp::vec3> normal;
 
     // Also stores the triangle connectivity used to update the normals
@@ -45,3 +43,4 @@ struct cloth_structure_drawable
 
 void draw(cloth_structure_drawable const& cloth_drawable, environment_generic_structure const& environment);
 void draw_wireframe(cloth_structure_drawable const& cloth_drawable, environment_generic_structure const& environment);
+void add_neighbor_vertex(std::vector<vertex_infos> *vertices, int vertex_a, int vertex_b, bool is_diag);

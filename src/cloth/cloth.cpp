@@ -1,4 +1,5 @@
 #include "cloth.hpp"
+#include <algorithm>
 
 using namespace cgp;
 
@@ -12,11 +13,24 @@ void print_array(numarray<uint3> array, int width) {
     printf("\n");
 }
 
-mesh generate_cloth(unsigned int height,unsigned int width, vec3 start_pos, float total_len_border) {
+void add_neighbor_vertex(std::vector<vertex_infos> *vertices, int vertex_a, int vertex_b, bool is_diag) {
+    if (is_diag) {
+        (*vertices)[vertex_a].neighbors_diag.push_back(vertex_b); 
+        (*vertices)[vertex_b].neighbors_diag.push_back(vertex_a); 
+    }
+    else {
+        std::vector<int> n_direct = (*vertices)[vertex_a].neighbors_direct;
+        // Avoid adding multiple times the same neighbor
+        if (std::find(n_direct.begin(), n_direct.end(), vertex_b) != n_direct.end()) {
+            (*vertices)[vertex_a].neighbors_direct.push_back(vertex_b); 
+            (*vertices)[vertex_b].neighbors_direct.push_back(vertex_a); 
+        }
+    }
+}
+
+mesh generate_cloth(unsigned int height,unsigned int width, vec3 start_pos, float total_len_border, std::vector<vertex_infos> *vertices_infos, bool save_infos = false) {
     vec3 actual_pos = start_pos; 
     mesh shape; 
-
-    
 
     float len_border = total_len_border / (float)(width - 1);
     printf("Create new grid - H: %d, W: %d, Len border: %f\n", height, width, len_border);
@@ -30,9 +44,17 @@ mesh generate_cloth(unsigned int height,unsigned int width, vec3 start_pos, floa
             float const u = i/(height-1.0f);
 			float const v = j/(width-1.0f);
 
+            if (save_infos) {
+                vertex_infos vertex; 
+                vertex.neighbors_diag = std::vector<int>(); 
+                vertex.neighbors_direct = std::vector<int>(); 
+                vertices_infos->push_back(vertex); 
+            }
+
             shape.position.push_back(actual_pos); 
             shape.normal.push_back(vec3(0, 0, 1));
             shape.uv.push_back({u, v});
+
 
             actual_pos[0] += len_border; 
         }
@@ -47,6 +69,13 @@ mesh generate_cloth(unsigned int height,unsigned int width, vec3 start_pos, floa
                 
                 float const u = (i + 0.5f) /(height-1.0f);
                 float const v = (j + 0.5f) /(width-1.0f);
+
+                if (save_infos) {
+                    vertex_infos vertex; 
+                    vertex.neighbors_diag = std::vector<int>(); 
+                    vertex.neighbors_direct = std::vector<int>(); 
+                    vertices_infos->push_back(vertex); 
+                }
 
                 shape.position.push_back(actual_pos); 
                 shape.normal.push_back(vec3(0, 0, 1));
@@ -76,6 +105,18 @@ mesh generate_cloth(unsigned int height,unsigned int width, vec3 start_pos, floa
             connectivity.push_back({actual_index, bot_right, bot_left});
             connectivity.push_back({actual_index, bot_left, top_left});
 
+            if (save_infos) {
+                add_neighbor_vertex(vertices_infos, actual_index, top_left, true);
+                add_neighbor_vertex(vertices_infos, actual_index, top_right, true);
+                add_neighbor_vertex(vertices_infos, actual_index, bot_left, true);
+                add_neighbor_vertex(vertices_infos, actual_index, bot_right, true);
+
+                add_neighbor_vertex(vertices_infos, top_left, top_right, false);
+                add_neighbor_vertex(vertices_infos, top_left, bot_left, false);
+                add_neighbor_vertex(vertices_infos, top_right, bot_right, false);
+                add_neighbor_vertex(vertices_infos, bot_left, bot_right, false);
+            }
+
             actual_index ++;
         }
     }
@@ -96,15 +137,12 @@ void cloth_structure::initialize(int N_samples_edge_arg, float len_border_cloth,
     position.clear();
     normal.clear();
     vertices.clear();
-    //velocity.clear();
-    //force.clear();
 
     position.resize(N_samples_edge_arg * N_samples_edge_arg);
     normal.resize(N_samples_edge_arg * N_samples_edge_arg);
-    //velocity.resize(N_samples_edge_arg, N_samples_edge_arg);
-    //force.resize(N_samples_edge_arg, N_samples_edge_arg);
+    vertices = std::vector<vertex_infos>();
 
-    mesh const cloth_mesh = generate_cloth(N_samples_edge_arg, N_samples_edge_arg, { -(len_border_cloth/2.0f),0,start_height_cloth }, len_border_cloth);
+    mesh const cloth_mesh = generate_cloth(N_samples_edge_arg, N_samples_edge_arg, { -(len_border_cloth/2.0f),0,start_height_cloth }, len_border_cloth, &vertices, true);
 
     position = cloth_mesh.position;
     normal = cloth_mesh.normal;
@@ -125,7 +163,8 @@ int cloth_structure::N_samples_edge() const
 
 void cloth_structure_drawable::initialize(int N_samples_edge, float len_border_cloth, float start_height_cloth)
 {
-    mesh const cloth_mesh = generate_cloth(N_samples_edge, N_samples_edge, { -(len_border_cloth/2.0f),0, 1.0f }, start_height_cloth);//mesh_primitive_grid({ 0,0,0 }, {1,0,0 }, { 1,1,0 }, { 0,1,0 }, N_samples_edge, N_samples_edge);
+    std::vector<vertex_infos> vert_inf = std::vector<vertex_infos>();
+    mesh const cloth_mesh = generate_cloth(N_samples_edge, N_samples_edge, { -(len_border_cloth/2.0f),0, 1.0f }, start_height_cloth, &vert_inf, false);//mesh_primitive_grid({ 0,0,0 }, {1,0,0 }, { 1,1,0 }, { 0,1,0 }, N_samples_edge, N_samples_edge);
 
     drawable.clear();
     drawable.initialize_data_on_gpu(cloth_mesh);
