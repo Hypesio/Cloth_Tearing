@@ -13,7 +13,9 @@ using cgp::mesh_drawable;
 struct gui_parameters {
 	bool display_frame = true;
 	bool display_wireframe = false;
-	int N_sample_edge = 20;  // number of samples of the cloth (the total number of vertices is N_sample_edge^2)
+	int N_sample_edge = 4;  // number of samples of the cloth (the total number of vertices is N_sample_edge^2)
+	float lengh_cloth = 1.0f; 
+	float height_cloth = 0.7f;
 };
 
 // The structure of the custom scene
@@ -63,7 +65,7 @@ struct scene_structure : scene_inputs_generic {
 	void display_gui();   // The display of the GUI, also called within the animation loop
 
 
-	void initialize_cloth(int N_sample); // Recompute the cloth from scratch
+	void initialize_cloth(int N_sample, float len_border_cloth, float start_height_cloth); // Recompute the cloth from scratch
 
 	void mouse_move_event();
 	void mouse_click_event();

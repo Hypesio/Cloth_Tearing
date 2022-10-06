@@ -11,6 +11,7 @@ struct simulation_parameters
     float mass_total = 1.0f; // total mass of the cloth
     float K = 10.0f;         // stiffness parameter
     float mu = 40.0f;        // damping parameter
+    float resistance = 1.0f;
 
     //  Wind magnitude and direction
     struct {

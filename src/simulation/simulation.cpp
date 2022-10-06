@@ -13,7 +13,7 @@ using namespace cgp;
 void simulation_compute_force(cloth_structure& cloth, simulation_parameters const& parameters)
 {
     // direct access to the variables
-    grid_2D<vec3>& force = cloth.force;
+    /*grid_2D<vec3>& force = cloth.force;
     grid_2D<vec3> const& position = cloth.position;
     grid_2D<vec3> const& velocity = cloth.velocity;
      grid_2D<vec3> const& normal = cloth.normal;
@@ -82,12 +82,12 @@ void simulation_compute_force(cloth_structure& cloth, simulation_parameters cons
             vec3 wind_force = parameters.wind.magnitude * parameters.wind.direction;
             force(ku,kv) += dot(-wind_force, normal(ku,kv)) * normal(ku,kv);
         }
-    }
+    }*/
 }
 
 void simulation_numerical_integration(cloth_structure& cloth, simulation_parameters const& parameters, float dt)
 {
-    int const N_edge = cloth.N_samples_edge();
+    /*int const N_edge = cloth.N_samples_edge();
     float const m = parameters.mass_total/ static_cast<float>(N_edge);
 
     for (int ku = 0; ku < N_edge; ++ku) {
@@ -100,14 +100,14 @@ void simulation_numerical_integration(cloth_structure& cloth, simulation_paramet
             v = v + dt * f / m;
             p = p + dt * v;
         }
-    }
+    }*/
     
 }
 
 void simulation_apply_constraints(cloth_structure& cloth, constraint_structure const& constraint)
 {
     // Fixed positions of the cloth
-    for (auto const& it : constraint.fixed_sample) {
+    /*for (auto const& it : constraint.fixed_sample) {
         position_contraint c = it.second;
         cloth.position(c.ku, c.kv) = c.position; // set the position to the fixed one
     }
@@ -142,14 +142,14 @@ void simulation_apply_constraints(cloth_structure& cloth, constraint_structure c
                 velocity(i, j) += dot(-velocity(i,j), normal_contact) * normal_contact;
             }
         }
-    }
+    }*/
 }
 
 
 
 bool simulation_detect_divergence(cloth_structure const& cloth)
 {
-    bool simulation_diverged = false;
+    /*bool simulation_diverged = false;
     const size_t N = cloth.position.size();
     for (size_t k = 0; simulation_diverged == false && k < N; ++k)
     {
@@ -175,6 +175,6 @@ bool simulation_detect_divergence(cloth_structure const& cloth)
         }
     }
 
-    return simulation_diverged;
+    return simulation_diverged;*/
 }
 

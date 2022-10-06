@@ -1,10 +1,6 @@
 #include "scene.hpp"
 
-
 using namespace cgp;
-
-
-
 
 void scene_structure::initialize()
 {
@@ -28,14 +24,15 @@ void scene_structure::initialize()
 	sphere_fixed_position.material.color = { 0,0,1 };
 
 	cloth_texture.load_and_initialize_texture_2d_on_gpu("assets/cloth.jpg");
-	initialize_cloth(gui.N_sample_edge);
+
+	initialize_cloth(gui.N_sample_edge, gui.lengh_cloth, gui.height_cloth);
 }
 
 // Compute a new cloth in its initial position (can be called multiple times)
-void scene_structure::initialize_cloth(int N_sample)
+void scene_structure::initialize_cloth(int N_sample, float len_border_cloth, float start_height_cloth)
 {
-	cloth.initialize(N_sample);
-	cloth_drawable.initialize(N_sample);
+	cloth.initialize(N_sample, len_border_cloth, start_height_cloth);
+	cloth_drawable.initialize(N_sample, len_border_cloth, start_height_cloth);
 	cloth_drawable.drawable.texture = cloth_texture;
 	cloth_drawable.drawable.material.texture_settings.two_sided = true;
 
@@ -117,20 +114,23 @@ void scene_structure::display_gui()
 	ImGui::Spacing(); ImGui::Spacing();
 
 	ImGui::Text("Simulation parameters");
-	ImGui::SliderFloat("Time step", &parameters.dt, 0.01f, 0.2f);
+	ImGui::SliderFloat("Time step", &parameters.dt, 0.01f, 0.2f, "%.3f", 0.01f);
 	ImGui::SliderFloat("Stiffness", &parameters.K, 1.0f, 80.0f, "%.3f", 2.0f);
 	ImGui::SliderFloat("Wind magnitude", &parameters.wind.magnitude, 0, 60, "%.3f", 2.0f);
 	ImGui::SliderFloat("Damping", &parameters.mu, 1.0f, 100.0f);
 	ImGui::SliderFloat("Mass", &parameters.mass_total, 0.2f, 5.0f, "%.3f", 2.0f);
+	ImGui::SliderFloat("Freedom fighter", &parameters.resistance, 0.2f, 20.0f, "%.3f", 1.0f);
 
 	ImGui::Spacing(); ImGui::Spacing();
 
 	reset |= ImGui::SliderInt("Cloth samples", &gui.N_sample_edge, 4, 80);
+	reset |= ImGui::SliderFloat("Cloth length", &gui.lengh_cloth, 0.2f, 4.0f, "%.3f", 1.0f);
+	reset |= ImGui::SliderFloat("Cloth start height", &gui.height_cloth, 0.2f, 4.0f, "%.3f", 0.7f);
 
 	ImGui::Spacing(); ImGui::Spacing();
 	reset |= ImGui::Button("Restart");
 	if (reset) {
-		initialize_cloth(gui.N_sample_edge);
+		initialize_cloth(gui.N_sample_edge, gui.lengh_cloth, gui.height_cloth);
 		simulation_running = true;
 	}
 }

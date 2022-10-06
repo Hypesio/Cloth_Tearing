@@ -10,7 +10,7 @@ static size_t hash_pair(int ku, int kv)
 
 void constraint_structure::add_fixed_position(int ku, int kv, cloth_structure const& cloth)
 {
-	fixed_sample[hash_pair(ku, kv)] = { ku, kv, cloth.position(ku, kv) };
+	//fixed_sample[hash_pair(ku, kv)] = { ku, kv, cloth.position(ku, kv) };
 }
 void constraint_structure::remove_fixed_position(int ku, int kv)
 {
