@@ -13,17 +13,32 @@ void print_array(numarray<uint3> array, int width) {
     printf("\n");
 }
 
+int find_neighbor(const std::vector<vertex_infos> vertices, const int vertex, const int neighbor) {
+    std::vector<spring> springs = vertices[vertex].springs;
+    for (unsigned int i = 0; i < springs.size(); i ++) {
+        if (springs[i].id == vertex)
+            return i;
+    }
+
+    return -1;
+}
+
 void add_neighbor_vertex(std::vector<vertex_infos> *vertices, int vertex_a, int vertex_b, bool is_diag) {
     if (is_diag) {
-        (*vertices)[vertex_a].neighbors_diag.push_back(vertex_b); 
-        (*vertices)[vertex_b].neighbors_diag.push_back(vertex_a); 
+        float len = 0.7f; 
+        spring ab = {vertex_b, len}; 
+        spring ba = {vertex_a, len};
+        (*vertices)[vertex_a].springs.push_back(ab); 
+        (*vertices)[vertex_b].springs.push_back(ba); 
     }
     else {
-        std::vector<int> n_direct = (*vertices)[vertex_a].neighbors_direct;
         // Avoid adding multiple times the same neighbor
-        if (std::find(n_direct.begin(), n_direct.end(), vertex_b) != n_direct.end()) {
-            (*vertices)[vertex_a].neighbors_direct.push_back(vertex_b); 
-            (*vertices)[vertex_b].neighbors_direct.push_back(vertex_a); 
+        if (find_neighbor(*vertices, vertex_a, vertex_b) == -1) {
+            float len = 1.0f;
+            spring ab = {vertex_b, len}; 
+            spring ba = {vertex_a, len};
+            (*vertices)[vertex_a].springs.push_back(ab); 
+            (*vertices)[vertex_b].springs.push_back(ba); 
         }
     }
 }
@@ -46,8 +61,7 @@ mesh generate_cloth(unsigned int height,unsigned int width, vec3 start_pos, floa
 
             if (save_infos) {
                 vertex_infos vertex; 
-                vertex.neighbors_diag = std::vector<int>(); 
-                vertex.neighbors_direct = std::vector<int>(); 
+                vertex.springs = std::vector<spring>(); 
                 vertices_infos->push_back(vertex); 
             }
 
@@ -72,8 +86,7 @@ mesh generate_cloth(unsigned int height,unsigned int width, vec3 start_pos, floa
 
                 if (save_infos) {
                     vertex_infos vertex; 
-                    vertex.neighbors_diag = std::vector<int>(); 
-                    vertex.neighbors_direct = std::vector<int>(); 
+                    vertex.springs = std::vector<spring>(); 
                     vertices_infos->push_back(vertex); 
                 }
 

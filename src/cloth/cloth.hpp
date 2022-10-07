@@ -4,11 +4,15 @@
 #include "../environment.hpp"
 #include <vector>
 
+struct spring {
+    int id; 
+    float rest; 
+};
+
 struct vertex_infos {
     cgp::vec3 velocity = vec3(0, 0, 0);
     cgp::vec3 force = vec3(0, 0, 0);; 
-    std::vector<int> neighbors_direct;
-    std::vector<int> neighbors_diag;  
+    std::vector<spring> springs;  
 };
 
 // Stores the buffers representing the cloth vertices
