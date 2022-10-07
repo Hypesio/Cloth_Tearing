@@ -23,9 +23,8 @@ int find_neighbor(const std::vector<vertex_infos> vertices, const int vertex, co
     return -1;
 }
 
-void add_neighbor_vertex(std::vector<vertex_infos> *vertices, int vertex_a, int vertex_b, bool is_diag) {
+void add_neighbor_vertex(std::vector<vertex_infos> *vertices, int vertex_a, int vertex_b, float len, bool is_diag) {
     if (is_diag) {
-        float len = 0.7f; 
         spring ab = {vertex_b, len}; 
         spring ba = {vertex_a, len};
         (*vertices)[vertex_a].springs.push_back(ab); 
@@ -34,7 +33,6 @@ void add_neighbor_vertex(std::vector<vertex_infos> *vertices, int vertex_a, int 
     else {
         // Avoid adding multiple times the same neighbor
         if (find_neighbor(*vertices, vertex_a, vertex_b) == -1) {
-            float len = 1.0f;
             spring ab = {vertex_b, len}; 
             spring ba = {vertex_a, len};
             (*vertices)[vertex_a].springs.push_back(ab); 
@@ -119,15 +117,18 @@ mesh generate_cloth(unsigned int height,unsigned int width, vec3 start_pos, floa
             connectivity.push_back({actual_index, bot_left, top_left});
 
             if (save_infos) {
-                add_neighbor_vertex(vertices_infos, actual_index, top_left, true);
-                add_neighbor_vertex(vertices_infos, actual_index, top_right, true);
-                add_neighbor_vertex(vertices_infos, actual_index, bot_left, true);
-                add_neighbor_vertex(vertices_infos, actual_index, bot_right, true);
 
-                add_neighbor_vertex(vertices_infos, top_left, top_right, false);
-                add_neighbor_vertex(vertices_infos, top_left, bot_left, false);
-                add_neighbor_vertex(vertices_infos, top_right, bot_right, false);
-                add_neighbor_vertex(vertices_infos, bot_left, bot_right, false);
+                float len_diag = norm(shape.position[top_left] - shape.position[actual_index]);
+
+                add_neighbor_vertex(vertices_infos, actual_index, top_left, len_diag, true);
+                add_neighbor_vertex(vertices_infos, actual_index, top_right, len_diag, true);
+                add_neighbor_vertex(vertices_infos, actual_index, bot_left, len_diag, true);
+                add_neighbor_vertex(vertices_infos, actual_index, bot_right, len_diag, true);
+
+                add_neighbor_vertex(vertices_infos, top_left, top_right, len_border, false);
+                add_neighbor_vertex(vertices_infos, top_left, bot_left, len_border, false);
+                add_neighbor_vertex(vertices_infos, top_right, bot_right, len_border, false);
+                add_neighbor_vertex(vertices_infos, bot_left, bot_right, len_border, false);
             }
 
             actual_index ++;
