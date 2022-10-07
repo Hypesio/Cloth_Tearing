@@ -11,8 +11,7 @@ struct sphere_parameter {
 
 // Parameter attached to a fixed vertex (ku,kv) coordinates + 3D position
 struct position_contraint {
-	int ku;
-	int kv;
+	int i;
 	cgp::vec3 position;
 };
 
@@ -25,8 +24,8 @@ struct constraint_structure
 	std::map<size_t, position_contraint> fixed_sample; // Storage of all fixed position of the cloth
 
 	// Add a new fixed position
-	void add_fixed_position(int ku, int kv, cloth_structure const& cloth);
+	void add_fixed_position(int i, cloth_structure const& cloth);
 	// Remove a fixed position
-	void remove_fixed_position(int ku, int kv);
+	void remove_fixed_position(int i);
 
 };

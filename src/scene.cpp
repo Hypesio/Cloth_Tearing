@@ -37,8 +37,8 @@ void scene_structure::initialize_cloth(int N_sample, float len_border_cloth, flo
 	cloth_drawable.drawable.material.texture_settings.two_sided = true;
 
 	constraint.fixed_sample.clear();
-	constraint.add_fixed_position(0, 0, cloth);
-	constraint.add_fixed_position(0, N_sample - 1, cloth);
+	constraint.add_fixed_position(0, cloth);
+	constraint.add_fixed_position(N_sample - 1, cloth);
 }
 
 
