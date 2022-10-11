@@ -11,7 +11,7 @@ struct spring {
 
 struct vertex_infos {
     cgp::vec3 velocity = vec3(0, 0, 0);
-    cgp::vec3 force = vec3(0, 0, 0);; 
+    cgp::vec3 force = vec3(0, 0, 0); 
     std::vector<spring> springs;  
 };
 
