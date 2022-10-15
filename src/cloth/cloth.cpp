@@ -1,5 +1,6 @@
 #include "cloth.hpp"
 #include <algorithm>
+#include <queue>
 
 using namespace cgp;
 
@@ -238,10 +239,26 @@ int findTriangle(cgp::numarray<cgp::uint3> triangles,unsigned int a,unsigned int
     {
         if (triangles[i][0] == a || triangles[i][1] == a || triangles[i][2] == a) {
             if (triangles[i][0] == b || triangles[i][1] == b || triangles[i][2] == b)
+            {
                 return i; 
+            }
         }
     }
     return -1;
+}
+
+int howMuchTriangles(cgp::numarray<cgp::uint3> triangles,unsigned int a,unsigned int b) {
+    int found = 0;
+    for (unsigned int i = 0; i < triangles.size(); i ++)
+    {
+        if (triangles[i][0] == a || triangles[i][1] == a || triangles[i][2] == a) {
+            if (triangles[i][0] == b || triangles[i][1] == b || triangles[i][2] == b)
+            {
+                found ++;
+            }
+        }
+    }
+    return found;
 }
 
 void cloth_structure::update_triangles(unsigned int oldVerticeIndex,unsigned int newVerticeIndex, std::vector<spring> springsChanged) 
@@ -266,7 +283,52 @@ void cloth_structure::update_triangles(unsigned int oldVerticeIndex,unsigned int
     shape.color.push_back(shape.color[oldVerticeIndex]);
 }
 
+bool cloth_structure::should_break(int vertex, std::vector<int>& neighboors) {
+    int side_no_triangle = 0; 
+    std::vector<spring> springs = vertices[vertex].springs;
+    
+    neighboors.push_back(springs[0].id); 
+    
+    for (int i = 0; i < springs.size(); i++) 
+    {
+        int actNeighboor = springs[i].id;
+        int found = howMuchTriangles(triangle_connectivity, vertex, actNeighboor); 
+        if (found == 0) 
+        {
+            printf("ERROR No Triangle found using %d, %d vertices !\n", vertex, actNeighboor); 
+            continue;
+        }
+        else if (found == 1) 
+            side_no_triangle ++;
+    }
 
+    std::queue<int> stack = std::queue<int>(); 
+    stack.push(springs[0].id);
+    while (stack.size() > 0) {
+        int actVertex = stack.front();
+        stack.pop();
+
+        if (neighboors.end() != std::find(neighboors.begin(), neighboors.end(), actVertex)) 
+        {
+            continue;
+        }
+        neighboors.push_back(actVertex);
+        std::vector<spring> springs = vertices[actVertex].springs;
+        for (spring s : springs) 
+        {
+            for (spring s2 : vertices[s.id].springs) 
+            {
+                if (s2.id == vertex) 
+                {
+                    stack.push(s.id);
+                }
+            }
+        }
+
+    }
+
+    return side_no_triangle >= 4;
+}
 
 void cloth_structure_drawable::initialize(int N_samples_edge, float len_border_cloth, float start_height_cloth)
 {
@@ -279,7 +341,7 @@ void cloth_structure_drawable::initialize(int N_samples_edge, float len_border_c
 }
 
 
-void cloth_structure_drawable::update(cloth_structure& cloth)
+void cloth_structure_drawable::update(cloth_structure& cloth, cgp::opengl_texture_image_structure cloth_texture)
 {    
     cloth.shape.position = cloth.position; 
     cloth.shape.normal = cloth.normal; 
@@ -288,6 +350,7 @@ void cloth_structure_drawable::update(cloth_structure& cloth)
     drawable.clear();
     drawable.initialize_data_on_gpu(cloth.shape);
     drawable.material.phong.specular = 0.0f;
+    drawable.texture = cloth_texture;
     //drawable.vbo_position.initialize_data_on_gpu(cloth.position.data);
     //drawable.vbo_position.update(cloth.position.data);
     //drawable.vbo_normal.initialize_data_on_gpu(cloth.normal.data);

@@ -102,7 +102,7 @@ void scene_structure::display_frame()
 
 	// Prepare to display the updated cloth
 	cloth.update_normal();        // compute the new normals
-	cloth_drawable.update(cloth); // update the positions on the GPU
+	cloth_drawable.update(cloth, cloth_texture); // update the positions on the GPU
 
 	// Display the cloth
 	draw(cloth_drawable, environment);

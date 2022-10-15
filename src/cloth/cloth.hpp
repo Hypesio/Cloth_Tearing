@@ -31,6 +31,8 @@ struct cloth_structure
     // Update triangles having a vertice OldVerticeIndex and one in springsChanged
     void update_triangles(unsigned int oldVerticeIndex,unsigned int newVerticeIndex, std::vector<spring> springsChanged);
 
+    // Return whether if a vertex should break and ref a list of neighboors. 
+    bool should_break(int vertex, std::vector<int>& neighboorA);
     
     void initialize(int N_samples_edge, float len_border_cloth, float start_height_cloth);  // Initialize a square flat cloth
     void update_normal();       // Call this function every time the cloth is updated before its draw
@@ -45,7 +47,7 @@ struct cloth_structure_drawable
     cgp::mesh_drawable drawable;
 
     void initialize(int N_sample_edge, float len_border_cloth, float start_height_cloth);
-    void update(cloth_structure& cloth);
+    void update(cloth_structure& cloth, cgp::opengl_texture_image_structure cloth_texture);
 };
 
 void draw(cloth_structure_drawable const& cloth_drawable, environment_generic_structure const& environment);
