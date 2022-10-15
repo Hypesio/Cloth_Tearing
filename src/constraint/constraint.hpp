@@ -27,5 +27,6 @@ struct constraint_structure
 	void add_fixed_position(int i, cloth_structure const& cloth);
 	// Remove a fixed position
 	void remove_fixed_position(int i);
-
+	// Update positions of all constraints
+	void update_positions(int i, vec3 position);
 };

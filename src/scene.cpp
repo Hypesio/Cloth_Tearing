@@ -37,7 +37,9 @@ void scene_structure::initialize_cloth(int N_sample, float len_border_cloth, flo
 	cloth_drawable.drawable.material.texture_settings.two_sided = true;
 
 	constraint.fixed_sample.clear();
+	gui.pointAPosition = cloth.position[0];
 	constraint.add_fixed_position(0, cloth);
+	gui.pointBPosition = cloth.position[N_sample - 1];
 	constraint.add_fixed_position(N_sample - 1, cloth);
 }
 
@@ -62,10 +64,13 @@ void scene_structure::display_frame()
 		draw(sphere_fixed_position, environment);
 	}
 
+	// Update constraint positions
+	constraint.update_positions(0, gui.pointAPosition);
+	constraint.update_positions(gui.N_sample_edge - 1, gui.pointBPosition);
 	
 	// Simulation of the cloth
 	// ***************************************** //
-	int const N_step = 1; // Adapt here the number of intermediate simulation steps (ex. 5 intermediate steps per frame)
+	int const N_step = 10; // Adapt here the number of intermediate simulation steps (ex. 5 intermediate steps per frame)
 	for (int k_step = 0; simulation_running == true && k_step < N_step; ++k_step)
 	{
 		// Update the forces on each particle
@@ -76,6 +81,11 @@ void scene_structure::display_frame()
 
 		// Apply the positional (and velocity) constraints
 		simulation_apply_constraints(cloth, constraint);
+
+		// Tear the cloth if too much force
+		size_t teared = simulation_tearing(cloth, parameters);
+		if (teared)
+			std::cout << "Teared " << teared << " vertices apart" << std::endl;
 
 		// Check if the simulation has not diverged - otherwise stop it
 		bool const simulation_diverged = simulation_detect_divergence(cloth);
@@ -123,7 +133,17 @@ void scene_structure::display_gui()
 
 	ImGui::Spacing(); ImGui::Spacing();
 
-	reset |= ImGui::SliderInt("Cloth samples", &gui.N_sample_edge, 4, 80);
+	ImGui::SliderFloat("Point A: x", &gui.pointAPosition[0], -1.00f, 1.0f, "%.3f", 1.0f);
+	ImGui::SliderFloat("Point A: y", &gui.pointAPosition[1], -1.00f, 1.0f, "%.3f", 1.0f);
+	ImGui::SliderFloat("Point A: z", &gui.pointAPosition[2], -1.00f, 1.0f, "%.3f", 1.0f);
+
+	ImGui::SliderFloat("Point B: x", &gui.pointBPosition[0], -1.0f, 1.0f, "%.3f", 2.0f);
+	ImGui::SliderFloat("Point B: y", &gui.pointBPosition[1], -1.0f, 1.0f, "%.3f", 2.0f);
+	ImGui::SliderFloat("Point B: z", &gui.pointBPosition[2], -1.0f, 1.0f, "%.3f", 2.0f);
+
+	ImGui::Spacing(); ImGui::Spacing();
+
+	reset |= ImGui::SliderInt("Cloth samples", &gui.N_sample_edge, 10, 80);
 	reset |= ImGui::SliderFloat("Cloth length", &gui.lengh_cloth, 0.2f, 4.0f, "%.3f", 1.0f);
 	reset |= ImGui::SliderFloat("Cloth start height", &gui.height_cloth, 0.2f, 4.0f, "%.3f", 0.7f);
 

@@ -19,14 +19,17 @@ struct vertex_infos {
 struct cloth_structure
 {    
 
+    mesh shape; 
     std::vector<vertex_infos> vertices;
     // Buffers are stored as 2D grid that can be accessed as grid(ku,kv)
-    
     numarray<cgp::vec3> position;  
     numarray<cgp::vec3> normal;
 
     // Also stores the triangle connectivity used to update the normals
     cgp::numarray<cgp::uint3> triangle_connectivity;
+
+    // Update triangles having a vertice OldVerticeIndex and one in springsChanged
+    void update_triangles(unsigned int oldVerticeIndex,unsigned int newVerticeIndex, std::vector<spring> springsChanged);
 
     
     void initialize(int N_samples_edge, float len_border_cloth, float start_height_cloth);  // Initialize a square flat cloth
@@ -42,7 +45,7 @@ struct cloth_structure_drawable
     cgp::mesh_drawable drawable;
 
     void initialize(int N_sample_edge, float len_border_cloth, float start_height_cloth);
-    void update(cloth_structure const& cloth);
+    void update(cloth_structure& cloth);
 };
 
 void draw(cloth_structure_drawable const& cloth_drawable, environment_generic_structure const& environment);

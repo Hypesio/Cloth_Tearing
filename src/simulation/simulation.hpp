@@ -7,7 +7,7 @@
 
 struct simulation_parameters
 {
-    float dt = 0.08f;        // time step for the numerical integration
+    float dt = 0.01f;        // time step for the numerical integration
     float mass_total = 1.0f; // total mass of the cloth
     float K = 10.0f;         // stiffness parameter
     float mu = 40.0f;        // damping parameter
@@ -29,6 +29,9 @@ void simulation_numerical_integration(cloth_structure& cloth, simulation_paramet
 
 // Apply the constraints (fixed position, obstacles) on the cloth position and velocity
 void simulation_apply_constraints(cloth_structure& cloth, constraint_structure const& constraint);
+
+// Break vertices which have to much force on them
+size_t simulation_tearing(cloth_structure& cloth, simulation_parameters const& parameters);
 
 // Helper function that tries to detect if the simulation diverged 
 bool simulation_detect_divergence(cloth_structure const& cloth);

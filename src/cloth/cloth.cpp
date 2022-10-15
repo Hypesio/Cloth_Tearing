@@ -136,6 +136,7 @@ mesh generate_cloth(unsigned int height,unsigned int width, vec3 start_pos, floa
                 add_neighbor_vertex(vertices_infos, top_right, bot_right, len_border, false);
                 add_neighbor_vertex(vertices_infos, bot_left, bot_right, len_border, false);
 
+                // Create double len springs
                 /*float len2 = len_diag * 2;
                 int width_int = static_cast<int>(width); 
                 int double_top_right = actual_index - width_int - (width_int - 2); 
@@ -219,6 +220,7 @@ void cloth_structure::initialize(int N_samples_edge_arg, float len_border_cloth,
     position = cloth_mesh.position;
     normal = cloth_mesh.normal;
     triangle_connectivity = cloth_mesh.connectivity;
+    shape = cloth_mesh;
 }
 
 void cloth_structure::update_normal()
@@ -231,13 +233,45 @@ int cloth_structure::N_samples_edge() const
     return position.size();
 }
 
+int findTriangle(cgp::numarray<cgp::uint3> triangles,unsigned int a,unsigned int b) {
+    for (unsigned int i = 0; i < triangles.size(); i ++)
+    {
+        if (triangles[i][0] == a || triangles[i][1] == a || triangles[i][2] == a) {
+            if (triangles[i][0] == b || triangles[i][1] == b || triangles[i][2] == b)
+                return i; 
+        }
+    }
+    return -1;
+}
+
+void cloth_structure::update_triangles(unsigned int oldVerticeIndex,unsigned int newVerticeIndex, std::vector<spring> springsChanged) 
+{
+    for (unsigned int i = 0; i < springsChanged.size(); i ++) 
+    {
+        int neighboor = springsChanged[i].id;
+        int found = findTriangle(triangle_connectivity, oldVerticeIndex, neighboor); 
+        if (found == -1) {
+            //printf("ERROR: Try to change a triangle that doesn't exist ! Index: %d, %d\n", oldVerticeIndex, neighboor); 
+            continue;
+        }
+
+        if (triangle_connectivity[found][0] == oldVerticeIndex)
+            triangle_connectivity[found][0] = newVerticeIndex;
+        else if (triangle_connectivity[found][1] == oldVerticeIndex)
+            triangle_connectivity[found][1] = newVerticeIndex;
+        else 
+            triangle_connectivity[found][2] = newVerticeIndex;
+    }
+    shape.uv.push_back(shape.uv[oldVerticeIndex]);
+    shape.color.push_back(shape.color[oldVerticeIndex]);
+}
+
 
 
 void cloth_structure_drawable::initialize(int N_samples_edge, float len_border_cloth, float start_height_cloth)
 {
     std::vector<vertex_infos> vert_inf = std::vector<vertex_infos>();
-    mesh const cloth_mesh = generate_cloth(N_samples_edge, N_samples_edge, { -(len_border_cloth/2.0f),0, start_height_cloth }, len_border_cloth, &vert_inf, false);//mesh_primitive_grid({ 0,0,0 }, {1,0,0 }, { 1,1,0 }, { 0,1,0 }, N_samples_edge, N_samples_edge);
-
+    mesh const cloth_mesh = generate_cloth(N_samples_edge, N_samples_edge, { -(len_border_cloth/2.0f),0, start_height_cloth }, len_border_cloth, &vert_inf, false);
     drawable.clear();
     drawable.initialize_data_on_gpu(cloth_mesh);
     drawable.material.phong.specular = 0.0f;
@@ -245,10 +279,21 @@ void cloth_structure_drawable::initialize(int N_samples_edge, float len_border_c
 }
 
 
-void cloth_structure_drawable::update(cloth_structure const& cloth)
+void cloth_structure_drawable::update(cloth_structure& cloth)
 {    
-    drawable.vbo_position.update(cloth.position.data);
-    drawable.vbo_normal.update(cloth.normal.data);
+    cloth.shape.position = cloth.position; 
+    cloth.shape.normal = cloth.normal; 
+    cloth.shape.connectivity = cloth.triangle_connectivity;
+    
+    drawable.clear();
+    drawable.initialize_data_on_gpu(cloth.shape);
+    drawable.material.phong.specular = 0.0f;
+    //drawable.vbo_position.initialize_data_on_gpu(cloth.position.data);
+    //drawable.vbo_position.update(cloth.position.data);
+    //drawable.vbo_normal.initialize_data_on_gpu(cloth.normal.data);
+    //drawable.vbo_normal.update(cloth.normal.data);
+    //drawable.ebo_connectivity.initialize_data_on_gpu(cloth.triangle_connectivity);
+    //drawable.material.phong.specular = 0.0f;
 }
 
 void draw(cloth_structure_drawable const& cloth_drawable, environment_generic_structure const& environment)
@@ -259,3 +304,4 @@ void draw_wireframe(cloth_structure_drawable const& cloth_drawable, environment_
 {
     draw_wireframe(cloth_drawable.drawable, environment);
 }
+
