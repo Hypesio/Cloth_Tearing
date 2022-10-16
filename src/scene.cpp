@@ -84,8 +84,10 @@ void scene_structure::display_frame()
 
 		// Tear the cloth if too much force
 		size_t teared = simulation_tearing(cloth, parameters);
-		if (teared)
+		if (teared) 
+		{
 			std::cout << "Teared " << teared << " vertices apart" << std::endl;
+		}
 
 		// Check if the simulation has not diverged - otherwise stop it
 		bool const simulation_diverged = simulation_detect_divergence(cloth);
