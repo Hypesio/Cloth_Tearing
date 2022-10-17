@@ -36,11 +36,7 @@ void scene_structure::initialize_cloth(int N_sample, float len_border_cloth, flo
 	cloth_drawable.drawable.texture = cloth_texture;
 	cloth_drawable.drawable.material.texture_settings.two_sided = true;
 
-	constraint.fixed_sample.clear();
-	gui.pointAPosition = cloth.position[0];
-	constraint.add_fixed_position(0, cloth);
-	gui.pointBPosition = cloth.position[N_sample - 1];
-	constraint.add_fixed_position(N_sample - 1, cloth);
+	constraint.set_fixed_point_scene(cloth, gui.scene_type, N_sample, gui);
 }
 
 
@@ -65,8 +61,8 @@ void scene_structure::display_frame()
 	}
 
 	// Update constraint positions
-	constraint.update_positions(0, gui.pointAPosition);
-	constraint.update_positions(gui.N_sample_edge - 1, gui.pointBPosition);
+	constraint.update_positions(0, gui.pointAPosition, 0);
+	constraint.update_positions(1, gui.pointBPosition, 0);
 	
 	// Simulation of the cloth
 	// ***************************************** //
@@ -119,6 +115,7 @@ void scene_structure::display_gui()
 	bool reset = false;
 
 	ImGui::Text("Display");
+	reset |= ImGui::SliderInt("Scene", &gui.scene_type, 0, 1);
 	ImGui::Checkbox("Frame", &gui.display_frame);
 	ImGui::Checkbox("Wireframe", &gui.display_wireframe);
 	ImGui::Checkbox("Texture Cloth", &cloth_drawable.drawable.material.texture_settings.active);

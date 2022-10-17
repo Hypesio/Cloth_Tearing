@@ -1,24 +1,14 @@
 #pragma once
 
-
 #include "cgp/cgp.hpp"
 #include "environment.hpp"
 
 #include "cloth/cloth.hpp"
 #include "simulation/simulation.hpp"
+#include "gui.hpp"
 
 using cgp::mesh_drawable;
 
-
-struct gui_parameters {
-	bool display_frame = true;
-	bool display_wireframe = false;
-	int N_sample_edge = 4; 
-	float lengh_cloth = 1.0f; 
-	float height_cloth = 1.7f;
-	vec3 pointAPosition; 
-	vec3 pointBPosition; 
-};
 
 // The structure of the custom scene
 struct scene_structure : scene_inputs_generic {

@@ -43,7 +43,7 @@ struct cloth_structure
     int howMuchTriangles(unsigned int a, unsigned int b);
 
     // Return how much empty sides are surrounding the vertex
-    int count_empty_side(int vertex);
+    int count_empty_side(int vertex, std::vector<int> &values);
 
     void initialize(int N_samples_edge, float len_border_cloth, float start_height_cloth); // Initialize a square flat cloth
     void update_normal();                                                                  // Call this function every time the cloth is updated before its draw

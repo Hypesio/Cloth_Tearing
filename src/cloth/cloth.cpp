@@ -336,9 +336,10 @@ void cloth_structure::update_triangles(unsigned int oldVerticeIndex, unsigned in
     shape.color.push_back(shape.color[oldVerticeIndex]);
 }
 
-int cloth_structure::count_empty_side(int vertex)
+int cloth_structure::count_empty_side(int vertex, std::vector<int> &values)
 {
     int side_no_triangle = 0;
+    values = std::vector<int>();
     std::vector<spring> springs = vertices[vertex].springs;
 
     for (int i = 0; i < springs.size(); i++)
@@ -353,6 +354,7 @@ int cloth_structure::count_empty_side(int vertex)
         else if (found == 1)
         {
             printf("The couple has a free side : %d %d\n", vertex, actNeighboor);
+            values.push_back(actNeighboor);
             side_no_triangle++;
         }
     }
@@ -361,7 +363,8 @@ int cloth_structure::count_empty_side(int vertex)
 
 bool cloth_structure::should_break(int vertex, std::vector<int> &neighbors, int remove)
 {
-    if (count_empty_side(vertex) < 4)
+    std::vector<int> garbage;
+    if (count_empty_side(vertex, garbage) < 4)
         return false;
 
     std::vector<spring> vertex_springs = vertices[vertex].springs;
