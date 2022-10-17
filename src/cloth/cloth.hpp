@@ -33,8 +33,14 @@ struct cloth_structure
     // Update triangles having a vertice OldVerticeIndex and one in springsChanged
     void update_triangles(unsigned int oldVerticeIndex, unsigned int newVerticeIndex, std::vector<spring> springsChanged);
 
+    // Update the specified triangle
+    void update_triangle(unsigned int a, unsigned int newA, unsigned int b, unsigned int c);
+
     // Return whether if a vertex should break and ref a list of neighboors.
-    bool should_break(int vertex, std::vector<int> &neighboorA);
+    bool should_break(int vertex, std::vector<int> &neighboorA, int remove);
+
+    // Return the number of triangle with this couple
+    int howMuchTriangles(unsigned int a, unsigned int b);
 
     // Return how much empty sides are surrounding the vertex
     int count_empty_side(int vertex);

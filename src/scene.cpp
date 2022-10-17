@@ -83,7 +83,7 @@ void scene_structure::display_frame()
 		simulation_apply_constraints(cloth, constraint);
 
 		// Tear the cloth if too much force
-		size_t teared = simulation_tearing(cloth, parameters);
+		size_t teared = simulation_tearing(cloth, parameters, constraint);
 		if (teared) 
 		{
 			std::cout << "Teared " << teared << " vertices apart" << std::endl;
@@ -145,7 +145,7 @@ void scene_structure::display_gui()
 
 	ImGui::Spacing(); ImGui::Spacing();
 
-	reset |= ImGui::SliderInt("Cloth samples", &gui.N_sample_edge, 10, 80);
+	reset |= ImGui::SliderInt("Cloth samples", &gui.N_sample_edge, 4, 16);
 	reset |= ImGui::SliderFloat("Cloth length", &gui.lengh_cloth, 0.2f, 4.0f, "%.3f", 1.0f);
 	reset |= ImGui::SliderFloat("Cloth start height", &gui.height_cloth, 0.2f, 4.0f, "%.3f", 0.7f);
 

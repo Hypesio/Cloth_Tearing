@@ -268,20 +268,39 @@ std::vector<int> findAllTriangles(cgp::numarray<cgp::uint3> triangles, unsigned 
     return res;
 }
 
-int howMuchTriangles(cgp::numarray<cgp::uint3> triangles, unsigned int a, unsigned int b)
+int cloth_structure::howMuchTriangles(unsigned int a, unsigned int b)
 {
     int found = 0;
-    for (unsigned int i = 0; i < triangles.size(); i++)
+    for (unsigned int i = 0; i < triangle_connectivity.size(); i++)
     {
-        if (triangles[i][0] == a || triangles[i][1] == a || triangles[i][2] == a)
+        if (triangle_connectivity[i][0] == a || triangle_connectivity[i][1] == a || triangle_connectivity[i][2] == a)
         {
-            if (triangles[i][0] == b || triangles[i][1] == b || triangles[i][2] == b)
+            if (triangle_connectivity[i][0] == b || triangle_connectivity[i][1] == b || triangle_connectivity[i][2] == b)
             {
                 found++;
             }
         }
     }
     return found;
+}
+
+void cloth_structure::update_triangle(unsigned int a, unsigned int newA, unsigned int b, unsigned int c) 
+{
+    for (unsigned int i = 0; i < triangle_connectivity.size(); i++)
+    {
+        if (triangle_connectivity[i][0] == a || triangle_connectivity[i][1] == a || triangle_connectivity[i][2] == a)
+        {
+            if (triangle_connectivity[i][0] == b || triangle_connectivity[i][1] == b || triangle_connectivity[i][2] == b)
+            {
+                if (triangle_connectivity[i][0] == c || triangle_connectivity[i][1] == c || triangle_connectivity[i][2] == c)
+                {
+                    triangle_connectivity[i] = {newA, b, c};
+                    printf("Update triangle [%d, %d, %d]\n ", newA, b, c);
+                    break;
+                }
+            }
+        }
+    }
 }
 
 void cloth_structure::update_triangles(unsigned int oldVerticeIndex, unsigned int newVerticeIndex, std::vector<spring> springsChanged)
@@ -325,7 +344,7 @@ int cloth_structure::count_empty_side(int vertex)
     for (int i = 0; i < springs.size(); i++)
     {
         int actNeighboor = springs[i].id;
-        int found = howMuchTriangles(triangle_connectivity, vertex, actNeighboor);
+        int found = howMuchTriangles(vertex, actNeighboor);
         if (found == 0)
         {
             printf("ERROR No Triangle found using %d, %d vertices !\n", vertex, actNeighboor);
@@ -340,44 +359,7 @@ int cloth_structure::count_empty_side(int vertex)
     return side_no_triangle;
 }
 
-// bool cloth_structure::should_break(int vertex, std::vector<int> &neighboors)
-// {
-//     int side_no_triangle = count_empty_side(vertex);
-
-//     if (size_no_triangle < 4)
-//         return false;
-
-//     std::vector<spring> springs = vertices[vertex].springs;
-
-//     std::queue<int> stack = std::queue<int>();
-//     stack.push(springs[0].id);
-//     while (stack.size() > 0)
-//     {
-//         int actVertex = stack.front();
-//         stack.pop();
-
-//         if (actVertex != vertex && neighboors.end() != std::find(neighboors.begin(), neighboors.end(), actVertex))
-//         {
-//             continue;
-//         }
-//         neighboors.push_back(actVertex);
-//         std::vector<spring> actSprings = vertices[actVertex].springs;
-//         for (spring s : actSprings)
-//         {
-//             for (spring s2 : vertices[s.id].springs)
-//             {
-//                 if (s2.id == vertex)
-//                 {
-//                     stack.push(s.id);
-//                 }
-//             }
-//         }
-//     }
-
-//     return true;
-// }
-
-bool cloth_structure::should_break(int vertex, std::vector<int> &neighbors)
+bool cloth_structure::should_break(int vertex, std::vector<int> &neighbors, int remove)
 {
     if (count_empty_side(vertex) < 4)
         return false;
@@ -391,16 +373,21 @@ bool cloth_structure::should_break(int vertex, std::vector<int> &neighbors)
         int current_vertex = neighbors_queue.front();
         neighbors_queue.pop();
 
-        if (std::find(neighbors.begin(), neighbors.end(), current_vertex) == neighbors.end())
+        if (current_vertex != remove && std::find(neighbors.begin(), neighbors.end(), current_vertex) == neighbors.end())
         {
             neighbors.push_back(current_vertex);
             std::vector<spring> current_springs = vertices[current_vertex].springs;
             for (spring s : current_springs)
                 for (spring s2 : vertex_springs)
                     if (s.id == s2.id)
+                    {
                         neighbors_queue.push(s.id);
+                        std::cout << current_vertex << "->" << s.id << '|';
+                        break;
+                    }
         }
     }
+    std::cout << std::endl;
 
     return true;
 }

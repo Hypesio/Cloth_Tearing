@@ -31,7 +31,7 @@ void simulation_numerical_integration(cloth_structure& cloth, simulation_paramet
 void simulation_apply_constraints(cloth_structure& cloth, constraint_structure const& constraint);
 
 // Break vertices which have to much force on them
-size_t simulation_tearing(cloth_structure& cloth, simulation_parameters const& parameters);
+size_t simulation_tearing(cloth_structure& cloth, simulation_parameters const& parameters, constraint_structure const &constraint);
 
 // Helper function that tries to detect if the simulation diverged 
 bool simulation_detect_divergence(cloth_structure const& cloth);
