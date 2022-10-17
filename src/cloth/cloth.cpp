@@ -340,38 +340,69 @@ int cloth_structure::count_empty_side(int vertex)
     return side_no_triangle;
 }
 
-bool cloth_structure::should_break(int vertex, std::vector<int> &neighboors)
+// bool cloth_structure::should_break(int vertex, std::vector<int> &neighboors)
+// {
+//     int side_no_triangle = count_empty_side(vertex);
+
+//     if (size_no_triangle < 4)
+//         return false;
+
+//     std::vector<spring> springs = vertices[vertex].springs;
+
+//     std::queue<int> stack = std::queue<int>();
+//     stack.push(springs[0].id);
+//     while (stack.size() > 0)
+//     {
+//         int actVertex = stack.front();
+//         stack.pop();
+
+//         if (actVertex != vertex && neighboors.end() != std::find(neighboors.begin(), neighboors.end(), actVertex))
+//         {
+//             continue;
+//         }
+//         neighboors.push_back(actVertex);
+//         std::vector<spring> actSprings = vertices[actVertex].springs;
+//         for (spring s : actSprings)
+//         {
+//             for (spring s2 : vertices[s.id].springs)
+//             {
+//                 if (s2.id == vertex)
+//                 {
+//                     stack.push(s.id);
+//                 }
+//             }
+//         }
+//     }
+
+//     return true;
+// }
+
+bool cloth_structure::should_break(int vertex, std::vector<int> &neighbors)
 {
-    int side_no_triangle = count_empty_side(vertex);
-    std::vector<spring> springs = vertices[vertex].springs;
-    neighboors.push_back(springs[0].id);
+    if (count_empty_side(vertex) < 4)
+        return false;
 
-    std::queue<int> stack = std::queue<int>();
-    stack.push(springs[0].id);
-    while (stack.size() > 0)
+    std::vector<spring> vertex_springs = vertices[vertex].springs;
+
+    std::queue<int> neighbors_queue = std::queue<int>();
+    neighbors_queue.push(vertex_springs[0].id);
+    while (neighbors_queue.size() > 0)
     {
-        int actVertex = stack.front();
-        stack.pop();
+        int current_vertex = neighbors_queue.front();
+        neighbors_queue.pop();
 
-        if (actVertex != vertex && neighboors.end() != std::find(neighboors.begin(), neighboors.end(), actVertex))
+        if (std::find(neighbors.begin(), neighbors.end(), current_vertex) == neighbors.end())
         {
-            continue;
-        }
-        neighboors.push_back(actVertex);
-        std::vector<spring> springs = vertices[actVertex].springs;
-        for (spring s : springs)
-        {
-            for (spring s2 : vertices[s.id].springs)
-            {
-                if (s2.id == vertex)
-                {
-                    stack.push(s.id);
-                }
-            }
+            neighbors.push_back(current_vertex);
+            std::vector<spring> current_springs = vertices[current_vertex].springs;
+            for (spring s : current_springs)
+                for (spring s2 : vertex_springs)
+                    if (s.id == s2.id)
+                        neighbors_queue.push(s.id);
         }
     }
 
-    return side_no_triangle >= 4;
+    return true;
 }
 
 void cloth_structure_drawable::initialize(int N_samples_edge, float len_border_cloth, float start_height_cloth)
