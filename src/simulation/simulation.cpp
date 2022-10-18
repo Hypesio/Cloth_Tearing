@@ -150,6 +150,77 @@ bool tear_vertex(int vertex, cloth_structure &cloth, int remove = -1)
     return false;
 }
 
+// Fill the neighbors representing one of the sides of the tear
+// Returns which way it represents (0 or 1 if no problem, 2 otherwise)
+inline int find_neighbors(std::vector<vertex_infos> const& vertices, std::vector<int> &empty_sides,
+    int border, int i, spring &left, spring &right, std::vector<int> &neighbors)
+{
+    int p[2] = { -1, -1 };
+    int t = 0;
+    for (spring left_spring : vertices[left.id].springs)
+    {
+        for (spring sub_spring : vertices[left_spring.id].springs)
+            if (sub_spring.id == i)
+            {
+                p[t++] = left_spring.id;
+                if (t == 2)
+                    break;
+            }
+        if (t == 2)
+            break;
+    }
+
+    t = 0;
+    neighbors.push_back(left.id);
+    neighbors.push_back(p[t]);
+    while (1)
+    {
+        int current = neighbors[neighbors.size() - 1];
+        if (std::find(empty_sides.begin(), empty_sides.end(), current) != empty_sides.end())
+            break;
+        
+        for (spring sub_spring : vertices[current].springs)
+        {
+            if (std::find(neighbors.begin(), neighbors.end(), sub_spring.id) == neighbors.end())
+            {
+                if (sub_spring.id == right.id)
+                {
+                    neighbors.push_back(right.id);
+                    break;
+                }
+                for (spring sub_sub_spring : vertices[sub_spring.id].springs)
+                {
+                    if (sub_sub_spring.id == i)
+                    {
+                        neighbors.push_back(sub_spring.id);
+                        break;
+                    }
+                }
+                if (neighbors[neighbors.size() - 1] != current)
+                    break;
+            }
+        }
+
+        if (neighbors[neighbors.size() - 1] == right.id)
+            break;
+        if (neighbors[neighbors.size() - 1] == current)
+        {
+            if (border)
+                break;
+            ++t;
+            neighbors.clear();
+            if (t == 2)
+                break;
+            // Couldn't link left to right with one of the side (there is probably a tear in the way), try with the other side
+            neighbors.clear();
+            neighbors.push_back(left.id);
+            neighbors.push_back(p[t]);
+        }
+    }
+
+    return t;
+}
+
 // Compute tearing on all vertices
 size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &parameters, constraint_structure const &constraint)
 {
@@ -256,69 +327,9 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
 
         std::vector<spring> springs = vertex.springs;
 
-        // line 260 - 320: find the neighbors of one of the vertex that will be created after tearing (graph walk from `left` to `right`)
-        int p[2] = { -1, -1 };
+        // find the neighbors of one of the vertex that will be created after tearing (graph walk from `left` to `right`)
         std::vector<int> neighbors;
-        int t = 0;
-        for (spring left_spring : vertices[left.id].springs)
-        {
-            for (spring sub_spring : vertices[left_spring.id].springs)
-                if (sub_spring.id == i)
-                {
-                    p[t++] = left_spring.id;
-                    if (t == 2)
-                        break;
-                }
-            if (t == 2)
-                break;
-        }
-
-        t = 0;
-        neighbors.push_back(left.id);
-        neighbors.push_back(p[t]);
-        while (1)
-        {
-            int current = neighbors[neighbors.size() - 1];
-            if (std::find(empty_sides.begin(), empty_sides.end(), current) != empty_sides.end())
-                break;
-            
-            for (spring sub_spring : vertices[current].springs)
-            {
-                if (std::find(neighbors.begin(), neighbors.end(), sub_spring.id) == neighbors.end())
-                {
-                    if (sub_spring.id == right.id)
-                    {
-                        neighbors.push_back(right.id);
-                        break;
-                    }
-                    for (spring sub_sub_spring : vertices[sub_spring.id].springs)
-                    {
-                        if (sub_sub_spring.id == i)
-                        {
-                            neighbors.push_back(sub_spring.id);
-                            break;
-                        }
-                    }
-                    if (neighbors[neighbors.size() - 1] != current)
-                        break;
-                }
-            }
-
-            if (neighbors[neighbors.size() - 1] == right.id)
-                break;
-            if (neighbors[neighbors.size() - 1] == current)
-            {
-                if (border)
-                    break;
-                ++t;
-                if (t == 2)
-                    break;
-                // Couldn't link left to right with one of the side (there is probably a tear in the way), try with the other side
-                neighbors.clear();
-                neighbors.push_back(left.id);
-                neighbors.push_back(p[t]);
-            }
-        }
+        int t = find_neighbors(cloth.vertices, empty_sides, border, i, left, right, neighbors);
 
         if (t == 2)
         {
