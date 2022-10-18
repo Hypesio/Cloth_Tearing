@@ -9,8 +9,8 @@ void scene_structure::initialize()
 	camera_control.look_at({ 3.0f, 2.0f, 2.0f }, {0,0,0}, {0,0,1});
 	global_frame.initialize_data_on_gpu(mesh_primitive_frame());
 
-	obstacle_floor.initialize_data_on_gpu(mesh_primitive_quadrangle({ -1.5f,-1.5f,0 }, { -1.5f,1.5f,0 }, { 1.5f,1.5f,0 }, { 1.5f,-1.5f,0 }));
-	obstacle_floor.texture.load_and_initialize_texture_2d_on_gpu("assets/wood.jpg");
+    obstacle_floor.initialize_data_on_gpu(mesh_primitive_quadrangle({ -5,-5,0 }, { -5,5,0 }, { 5,5,0 }, { 5,-5,0 }));
+    obstacle_floor.texture.load_and_initialize_texture_2d_on_gpu("assets/tiles.png");
 	obstacle_floor.model.translation = { 0,0,constraint.ground_z };
 	obstacle_floor.material.texture_settings.two_sided = true;
 
@@ -46,6 +46,7 @@ void scene_structure::display_frame()
 {
 	// Set the light to the current position of the camera
 	environment.light = camera_control.camera_model.position();
+	environment.background_color = {.55, .75, .95};
 	
 	if (gui.display_frame)
 		draw(global_frame, environment);
