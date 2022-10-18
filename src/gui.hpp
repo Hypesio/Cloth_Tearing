@@ -9,4 +9,5 @@ struct gui_parameters {
 	vec3 pointAPosition; 
 	vec3 pointBPosition; 
 	int scene_type = 0;
+	float sphere_radius = 0.15f;
 };

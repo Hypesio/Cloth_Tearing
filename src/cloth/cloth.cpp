@@ -54,12 +54,12 @@ void add_neighbor_vertex(std::vector<vertex_infos> *vertices, int vertex_a, int 
     }
 }
 
-mesh generate_cloth(unsigned int height, unsigned int width, vec3 start_pos, std::vector<vertex_infos> *vertices_infos, bool save_infos = false)
+mesh generate_cloth(unsigned int height, unsigned int width, float len, vec3 start_pos, std::vector<vertex_infos> *vertices_infos, bool save_infos = false)
 {
     vec3 actual_pos = start_pos;
     mesh shape;
 
-    float len_border = 1.0f / (static_cast<float>(width) - 1.0f);
+    float len_border =  len / (static_cast<float>(width) - 1.0f);
     printf("Create new grid - H: %d, W: %d, Len border: %f\n", height, width, len_border);
 
     // Init all the vertices
@@ -175,8 +175,7 @@ void cloth_structure::initialize(int N_samples_edge_arg, float len_border_cloth,
     position.resize(N_samples_edge_arg * N_samples_edge_arg);
     normal.resize(N_samples_edge_arg * N_samples_edge_arg);
     vertices = std::vector<vertex_infos>();
-
-    mesh const cloth_mesh = generate_cloth(N_samples_edge_arg, N_samples_edge_arg, {-(len_border_cloth / 2.0f), 0, start_height_cloth}, &vertices, true);
+    mesh const cloth_mesh = generate_cloth(N_samples_edge_arg, N_samples_edge_arg, len_border_cloth, {-(len_border_cloth / 2.0f), -(len_border_cloth / 2.0f), start_height_cloth}, &vertices, true);
 
     position = cloth_mesh.position;
     normal = cloth_mesh.normal;
@@ -322,7 +321,7 @@ bool cloth_structure::should_break(int vertex, std::vector<int> &neighbors, int 
 void cloth_structure_drawable::initialize(int N_samples_edge, float len_border_cloth, float start_height_cloth)
 {
     std::vector<vertex_infos> vert_inf = std::vector<vertex_infos>();
-    mesh const cloth_mesh = generate_cloth(N_samples_edge, N_samples_edge, {-(len_border_cloth / 2.0f), 0, start_height_cloth}, &vert_inf, false);
+    mesh const cloth_mesh = generate_cloth(N_samples_edge, N_samples_edge, len_border_cloth, {-(len_border_cloth / 2.0f), -(len_border_cloth / 2.0f), start_height_cloth}, &vert_inf, false);
     drawable.clear();
     drawable.initialize_data_on_gpu(cloth_mesh);
     drawable.material.phong.specular = 0.0f;

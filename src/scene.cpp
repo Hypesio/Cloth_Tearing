@@ -35,8 +35,8 @@ void scene_structure::initialize_cloth(int N_sample, float len_border_cloth, flo
 	cloth_drawable.initialize(N_sample, len_border_cloth, start_height_cloth);
 	cloth_drawable.drawable.texture = cloth_texture;
 	cloth_drawable.drawable.material.texture_settings.two_sided = true;
-	constraint.sphere.center = {0.1f, 0.5f, 0.0f};
-	obstacle_sphere.model.translation = {0.1f, 0.5f, 0.0f};
+	constraint.sphere.center = {0.0f, 0.0f, 0.0f};
+	obstacle_sphere.model.translation = {0.0f, 0.0f, 0.0f};
 	//obstacle_sphere.hierarchy_transform_model.translation = vec3(0, 0, 0);
 	constraint.set_fixed_point_scene(cloth, gui.scene_type, N_sample, gui);
 }
@@ -59,6 +59,8 @@ void scene_structure::display_frame()
 		constraint.sphere.center += vec3(0, 0, 0.0032);
 		obstacle_sphere.model.translation += vec3(0, 0, 0.0032);
 	}
+	constraint.sphere.radius = gui.sphere_radius; 
+	obstacle_sphere.model.scaling = gui.sphere_radius;
 	draw(obstacle_floor, environment);
 	draw(obstacle_sphere, environment);
 	
@@ -133,7 +135,7 @@ void scene_structure::display_gui()
 	ImGui::SliderFloat("Wind magnitude", &parameters.wind.magnitude, 0, 1, "%.3f", 2.0f);
 	ImGui::SliderFloat("Damping", &parameters.mu, 1.0f, 100.0f);
 	ImGui::SliderFloat("Mass", &parameters.mass_total, 0.2f, 5.0f, "%.3f", 2.0f);
-	ImGui::SliderFloat("Freedom fighter", &parameters.resistance, 0.2f, 20.0f, "%.3f", 1.0f);
+	ImGui::SliderFloat("Freedom fighter", &parameters.resistance, 0.2f, 40.0f, "%.3f", 1.0f);
 
 	ImGui::Spacing(); ImGui::Spacing();
 
@@ -144,10 +146,11 @@ void scene_structure::display_gui()
 	ImGui::SliderFloat("Point B: x", &gui.pointBPosition[0], -1.0f, 1.0f, "%.3f", 2.0f);
 	ImGui::SliderFloat("Point B: y", &gui.pointBPosition[1], -1.0f, 1.0f, "%.3f", 2.0f);
 	ImGui::SliderFloat("Point B: z", &gui.pointBPosition[2], -1.0f, 1.0f, "%.3f", 2.0f);
+	ImGui::SliderFloat("Sphere Radius: ", &gui.sphere_radius, 0.0, 1.0f, "%.3f", 2.0f);
 
 	ImGui::Spacing(); ImGui::Spacing();
 
-	reset |= ImGui::SliderInt("Cloth samples", &gui.N_sample_edge, 4, 16);
+	reset |= ImGui::SliderInt("Cloth samples", &gui.N_sample_edge, 4, 32);
 	reset |= ImGui::SliderFloat("Cloth length", &gui.lengh_cloth, 0.2f, 4.0f, "%.3f", 1.0f);
 	reset |= ImGui::SliderFloat("Cloth start height", &gui.height_cloth, 0.2f, 4.0f, "%.3f", 0.7f);
 
