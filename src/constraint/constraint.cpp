@@ -21,7 +21,7 @@ void constraint_structure::set_fixed_point_scene(cloth_structure const &cloth, i
         add_fixed_position(n_sample - 1, cloth);
     }
     // Both side hold the tissue
-    else if (scene_type == 1)
+    else if (scene_type == 1 || scene_type == 2)
     {
         unsigned int i = 0;
         while (i < cloth.vertices.size())

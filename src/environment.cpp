@@ -5,7 +5,7 @@
 environment_structure::environment_structure()
 {
 	background_color = { 1,1,1 };
-	light = { 1,1,1 };
+	light = { 1,1,3 };
 }
 
 

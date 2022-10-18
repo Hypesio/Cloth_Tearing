@@ -240,7 +240,7 @@ void cloth_structure::initialize(int N_samples_edge_arg, float len_border_cloth,
 
 void cloth_structure::update_normal()
 {
-    normal_per_vertex(position, triangle_connectivity, normal);
+    normal_per_vertex(position, triangle_connectivity, normal, true);
 }
 
 int cloth_structure::N_samples_edge() const

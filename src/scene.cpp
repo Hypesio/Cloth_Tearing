@@ -35,7 +35,9 @@ void scene_structure::initialize_cloth(int N_sample, float len_border_cloth, flo
 	cloth_drawable.initialize(N_sample, len_border_cloth, start_height_cloth);
 	cloth_drawable.drawable.texture = cloth_texture;
 	cloth_drawable.drawable.material.texture_settings.two_sided = true;
-
+	constraint.sphere.center = {0.1f, 0.5f, 0.0f};
+	obstacle_sphere.model.translation = {0.1f, 0.5f, 0.0f};
+	//obstacle_sphere.hierarchy_transform_model.translation = vec3(0, 0, 0);
 	constraint.set_fixed_point_scene(cloth, gui.scene_type, N_sample, gui);
 }
 
@@ -51,9 +53,16 @@ void scene_structure::display_frame()
 
 	// Elements of the scene: Obstacles (floor, sphere), and fixed position
 	// ***************************************** //
-	
+	// Scene 2 move the sphere
+	if (gui.scene_type == 2) 
+	{
+		constraint.sphere.center += vec3(0, 0, 0.0032);
+		obstacle_sphere.model.translation += vec3(0, 0, 0.0032);
+	}
 	draw(obstacle_floor, environment);
 	draw(obstacle_sphere, environment);
+	
+
 	for (auto const& c : constraint.fixed_sample)
 	{
 		sphere_fixed_position.model.translation = c.second.position;
@@ -107,7 +116,7 @@ void scene_structure::display_frame()
 	if (gui.display_wireframe)
 		draw_wireframe(cloth_drawable, environment);
 		
-
+	
 }
 
 void scene_structure::display_gui()
@@ -115,7 +124,7 @@ void scene_structure::display_gui()
 	bool reset = false;
 
 	ImGui::Text("Display");
-	reset |= ImGui::SliderInt("Scene", &gui.scene_type, 0, 1);
+	reset |= ImGui::SliderInt("Scene", &gui.scene_type, 0, 2);
 	ImGui::Checkbox("Frame", &gui.display_frame);
 	ImGui::Checkbox("Wireframe", &gui.display_wireframe);
 	ImGui::Checkbox("Texture Cloth", &cloth_drawable.drawable.material.texture_settings.active);
