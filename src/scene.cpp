@@ -70,8 +70,8 @@ void scene_structure::display_frame()
 	}
 
 	// Update constraint positions
-	constraint.update_positions(0, gui.pointAPosition, 0);
-	constraint.update_positions(1, gui.pointBPosition, 0);
+	constraint.update_positions(0, gui.pointAPosition);
+	constraint.update_positions(1, gui.pointBPosition);
 	
 	// Simulation of the cloth
 	// ***************************************** //
@@ -87,12 +87,8 @@ void scene_structure::display_frame()
 		// Apply the positional (and velocity) constraints
 		simulation_apply_constraints(cloth, constraint);
 
-		// Tear the cloth if too much force
-		size_t teared = simulation_tearing(cloth, parameters, constraint);
-		if (teared) 
-		{
-			std::cout << "Teared " << teared << " vertices apart" << std::endl;
-		}
+		// Tear the cloth on vertices with too much tension
+		simulation_tearing(cloth, parameters, constraint);
 
 		// Check if the simulation has not diverged - otherwise stop it
 		bool const simulation_diverged = simulation_detect_divergence(cloth);

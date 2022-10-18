@@ -5,16 +5,6 @@
 
 using namespace cgp;
 
-void debug_print_springs(int vertex, std::vector<spring> springs)
-{
-    printf("Springs of %d: ", vertex);
-    for (spring s : springs)
-    {
-        printf("%u ,", s.id);
-    }
-    printf("\n");
-}
-
 void simulation_compute_force(cloth_structure &cloth, simulation_parameters const &parameters)
 {
     std::vector<vertex_infos> &vertices = cloth.vertices;
@@ -62,16 +52,13 @@ void simulation_numerical_integration(cloth_structure &cloth, simulation_paramet
 
     size_t const N = vertices.size();
     float const m = parameters.mass_total / static_cast<float>(N);
-
-    // std::cout << "old position: " << position[1] << std::endl;
+    
     for (int i = 0; i < N; ++i)
     {
         vertex_infos &v = vertices[i];
         v.velocity += (dt * v.force / m);
         position[i] += (dt * v.velocity);
     }
-    // std::cout << "position: " << position[1] << std::endl;
-    // std::cout << "velocity: " << vertices[1].velocity << std::endl;
 }
 
 void simulation_apply_constraints(cloth_structure &cloth, constraint_structure const &constraint)
@@ -82,7 +69,7 @@ void simulation_apply_constraints(cloth_structure &cloth, constraint_structure c
     size_t const N = vertices.size();
 
     float const floor_height = .001;
-    float const sphere_collision = .01;
+    float const sphere_collision = .02;
 
     for (auto const &it : constraint.fixed_sample)
     {
@@ -114,12 +101,8 @@ mat3 get_symetric_matrix(vec3 v, float e = 1.0f)
 {
     mat3 mat = mat3();
     for (int i = 0; i < 3; ++i)
-    {
         for (int j = 0; j < 3; ++j)
-        {
             mat[i][j] = v[i] * v[j];
-        }
-    };
     return mat / e;
 }
 
@@ -128,10 +111,6 @@ bool tear_vertex(int vertex, cloth_structure &cloth, int remove = -1)
     std::vector<int> neighbors;
     if (cloth.should_break(vertex, neighbors, remove))
     {
-        printf("Launch consecutive break on %d\n", vertex);
-        for (int n : neighbors)
-            std::cout << n << ';';
-        std::cout << std::endl;
         std::vector<vertex_infos> &vertices = cloth.vertices;
         numarray<vec3> &position = cloth.position;
         numarray<vec3> &normal = cloth.normal;
@@ -162,8 +141,6 @@ bool tear_vertex(int vertex, cloth_structure &cloth, int remove = -1)
         }
 
         cloth.update_triangles(vertex, N, vertices[N].springs);
-        debug_print_springs(vertex, vertices[vertex].springs);
-        debug_print_springs(N, vertices[N].springs);
         return true;
     }
     return false;
@@ -211,16 +188,8 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
         
         if (norm(max_tension) > parameters.resistance)
         {
-            std::cout << std::endl << std::endl << "SPLITING " << i << std::endl;
-
             std::vector<int> empty_sides;
-            int empty = cloth.count_empty_side(i, empty_sides);
-            std::cout << "This vertex has " << empty << " one-sided springs." << std::endl;
-            if (empty)
-                std::cout << "`-> BORDER!" << std::endl;
-
-            std::cout << "Vertex's springs before changes: (" << vertex.springs.size() << ')' << std::endl;
-            debug_print_springs(i, vertex.springs);
+            int border = cloth.count_empty_side(i, empty_sides);
 
             vec3 right_vect = cross(max_tension, normal[i]);
 
@@ -245,15 +214,12 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
                 }
             }
 
-            if (empty)
+            if (border)
             {
                 if (cloth.howMuchTriangles(i, right.id) == 1)
                 {
                     if (cloth.howMuchTriangles(i, left.id) == 1)
-                    {
-                        std::cout << "selected " << left.id << "; " << right.id << ": abort break" << std::endl;
                         continue;
-                    }
                     right = left;
                 }
                 else if (max_dot_right > max_dot_left)
@@ -262,18 +228,9 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
                     left = right;
                 else
                     right = left;
-
-                std::cout << "Choosen spring is " << left.id << std::endl;
             }
             else if (left.id == -1 || right.id == -1 || left.id == right.id)
-            {
-                std::cout << "ERROR: left.id: " << left.id << "; right.id: " << right.id << std::endl;
                 continue;
-            }
-            else
-            {
-                std::cout << "Choosen springs are " << left.id << "; " << right.id << std::endl;
-            }
 
             std::vector<spring> springs = vertex.springs;
 
@@ -292,7 +249,6 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
                 if (t == 2)
                     break;
             }
-            std::cout << "possibilities: " << p[0] << "; " << p[1] << std::endl;
 
             t = 0;
             neighbors.push_back(left.id);
@@ -301,15 +257,10 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
             {
                 int current = neighbors[neighbors.size() - 1];
                 if (std::find(empty_sides.begin(), empty_sides.end(), current) != empty_sides.end())
-                {
-                    std::cout << "stopping to side" << std::endl;
                     break;
-                }
                 
-                std::cout << "going through " << current;
                 for (spring sub_spring : vertices[current].springs)
                 {
-                    std::cout << sub_spring.id << "; ";
                     if (std::find(neighbors.begin(), neighbors.end(), sub_spring.id) == neighbors.end())
                     {
                         if (sub_spring.id == right.id)
@@ -329,20 +280,13 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
                             break;
                     }
                 }
-                std::cout << std::endl;
 
                 if (neighbors[neighbors.size() - 1] == right.id)
-                {
-                    std::cout << "break right in neighbor" << std::endl;
                     break;
-                }
                 if (neighbors[neighbors.size() - 1] == current)
                 {
-                    if (empty)
-                    {
-                        std::cout << "break border" << std::endl;
+                    if (border)
                         break;
-                    }
                     ++t;
                     if (t == 2)
                         break;
@@ -351,11 +295,6 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
                     neighbors.push_back(p[t]);
                 }
             }
-
-            std::cout << "neighbors detected: ";
-            for (int abdwo : neighbors)
-                std::cout << abdwo << ';';
-            std::cout << std::endl;
 
             if (t == 2)
             {
@@ -386,9 +325,6 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
                 }
             }
 
-            debug_print_springs(i, vertex.springs);
-            debug_print_springs(new_id, vertices[new_id].springs);
-
             if (vertices[new_id].springs.size() == 0)
                 cloth.update_triangle(i, new_id, left.id, right.id);
             cloth.update_triangles(i, new_id, vertices[new_id].springs);
@@ -399,8 +335,8 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
             new_s.id = new_id;
             vertices[left.id].springs.push_back(new_s);
 
-            // We only use one break spring for a border, no need for s2
-            if (!empty)
+            // We only use one break spring for a border, no need for right
+            if (!border)
             {
                 vertices[new_id].springs.push_back(spring(right));
                 vertex.springs.push_back(spring(right));
@@ -408,37 +344,23 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
                 new_s.id = new_id;
                 vertices[right.id].springs.push_back(new_s);
             }
-
-            printf("New Size v%lu  -- Size new V %lu --- S1 %d S2 %d V %lu\n", vertex.springs.size(), vertices[new_id].springs.size(), left.id, right.id, i);
-            debug_print_springs(i, vertex.springs);
-            debug_print_springs(new_id, vertices[new_id].springs);
-            debug_print_springs(left.id, vertices[left.id].springs);
-            debug_print_springs(right.id, vertices[right.id].springs);
             ++teared;
 
+            // A constraint can't break
             if (constraint.fixed_sample.find(left.id) == constraint.fixed_sample.end())
             {
                 if (tear_vertex(left.id, cloth, cloth.count_empty_side(right.id, garbage) >= 4 ? right.id : -1))
                     ++teared;
             }
-            else
-                std::cout << "Tried to break on constraint: " << left.id << std::endl;
 
+            // A constraint can't break
             if (constraint.fixed_sample.find(right.id) == constraint.fixed_sample.end())
             {
-                if (!empty && tear_vertex(right.id, cloth, cloth.count_empty_side(left.id, garbage) >= 4 ? left.id : -1))
+                if (!border && tear_vertex(right.id, cloth, cloth.count_empty_side(left.id, garbage) >= 4 ? left.id : -1))
                     ++teared;
             }
-            else
-                std::cout << "Tried to break on constraint: " << right.id << std::endl;
         }
     }
-
-    N = vertices.size();
-    for (vertex_infos vertex : cloth.vertices)
-        for (spring s : vertex.springs)
-            if (s.id >= N)
-                printf("\n\n **** Error springs out of bounds ! Before*** \n\n");
 
     return teared;
 }

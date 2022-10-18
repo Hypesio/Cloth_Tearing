@@ -35,5 +35,5 @@ struct constraint_structure
 	// Update position of one constraints
 	void update_position(int i, vec3 position);
 	// Update positions of all constraints of set
-	void update_positions(int set_index, vec3 position, int scene_type);
+	void update_positions(int set_index, vec3 position);
 };

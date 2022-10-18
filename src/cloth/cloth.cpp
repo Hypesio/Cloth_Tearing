@@ -54,7 +54,7 @@ void add_neighbor_vertex(std::vector<vertex_infos> *vertices, int vertex_a, int 
     }
 }
 
-mesh generate_cloth(unsigned int height, unsigned int width, vec3 start_pos, float total_len_border, std::vector<vertex_infos> *vertices_infos, bool save_infos = false)
+mesh generate_cloth(unsigned int height, unsigned int width, vec3 start_pos, std::vector<vertex_infos> *vertices_infos, bool save_infos = false)
 {
     vec3 actual_pos = start_pos;
     mesh shape;
@@ -151,66 +151,12 @@ mesh generate_cloth(unsigned int height, unsigned int width, vec3 start_pos, flo
                 add_neighbor_vertex(vertices_infos, top_left, bot_left, len_border, false);
                 add_neighbor_vertex(vertices_infos, top_right, bot_right, len_border, false);
                 add_neighbor_vertex(vertices_infos, bot_left, bot_right, len_border, false);
-
-                // Create double len springs
-                /*float len2 = len_diag * 2;
-                int width_int = static_cast<int>(width);
-                int double_top_right = actual_index - width_int - (width_int - 2);
-                int double_top_left = actual_index - (width_int * 2);
-
-                int double_bot_left = actual_index + width_int + (width_int - 2);
-                int double_bot_right = actual_index + width * 2;
-                //printf("Connect: %d, %d\n",  double_top_left, double_top_right)
-                if (j < width - 2 && i != 0)
-                {
-                    printf("Connect TR: %d, %d\n", actual_index, double_top_right);
-                    add_neighbor_vertex(vertices_infos, actual_index, double_top_right, len2, false);
-                }
-                if (j >= 1 && i != 0)
-                {
-                    printf("Connect TL: %d, %d\n", actual_index, double_top_left);
-                    add_neighbor_vertex(vertices_infos, actual_index, double_top_left, len2, false);
-                }
-                if (j < width - 2  && i < height - 2)
-                {
-                    printf("Connect BR: %d, %d\n", actual_index, double_bot_right);
-                    add_neighbor_vertex(vertices_infos, actual_index, double_bot_right, len2, false);
-                }
-                if (j >= 1 && i < height - 2)
-                {
-                    printf("Connect BL: %d, %d\n", actual_index,  double_bot_left);
-                    add_neighbor_vertex(vertices_infos, actual_index, double_bot_left, len2, false);
-                }*/
             }
 
             actual_index++;
         }
     }
-
-    /* Add double springs to make a stronger cloth
-    if (save_infos) {
-        actual_index = 0;
-        for (unsigned int i = 0; i < height; i++) {
-            for (unsigned int j = 0; j < width; j++) {
-                int top_2 = actual_index - (3 * width + (width - 2));
-                int bot_2 = actual_index + (3 * width + (width - 2));
-
-                if (j >= 2) {
-                    add_neighbor_vertex(vertices_infos, actual_index, actual_index - 2, len_border * 2, true);
-                }
-                if (j < width - 2) {
-                    add_neighbor_vertex(vertices_infos, actual_index, actual_index + 2, len_border * 2, true);
-                }
-                add_neighbor_vertex(vertices_infos,  actual_index, top_2, len_border * 2, true);
-                add_neighbor_vertex(vertices_infos,  actual_index, bot_2, len_border * 2, true);
-                actual_index += 1;
-            }
-            actual_index += width - 1;
-        }
-    }*/
-
-    // print_array(connectivity, width);
-    // printf("%d\n", shape.position.size());
+    
     shape.connectivity = connectivity;
     shape.fill_empty_field();
     shape.flip_connectivity();
@@ -230,7 +176,7 @@ void cloth_structure::initialize(int N_samples_edge_arg, float len_border_cloth,
     normal.resize(N_samples_edge_arg * N_samples_edge_arg);
     vertices = std::vector<vertex_infos>();
 
-    mesh const cloth_mesh = generate_cloth(N_samples_edge_arg, N_samples_edge_arg, {-(len_border_cloth / 2.0f), 0, start_height_cloth}, len_border_cloth, &vertices, true);
+    mesh const cloth_mesh = generate_cloth(N_samples_edge_arg, N_samples_edge_arg, {-(len_border_cloth / 2.0f), 0, start_height_cloth}, &vertices, true);
 
     position = cloth_mesh.position;
     normal = cloth_mesh.normal;
@@ -272,35 +218,22 @@ int cloth_structure::howMuchTriangles(unsigned int a, unsigned int b)
 {
     int found = 0;
     for (unsigned int i = 0; i < triangle_connectivity.size(); i++)
-    {
         if (triangle_connectivity[i][0] == a || triangle_connectivity[i][1] == a || triangle_connectivity[i][2] == a)
-        {
             if (triangle_connectivity[i][0] == b || triangle_connectivity[i][1] == b || triangle_connectivity[i][2] == b)
-            {
-                found++;
-            }
-        }
-    }
+                ++found;
     return found;
 }
 
 void cloth_structure::update_triangle(unsigned int a, unsigned int newA, unsigned int b, unsigned int c) 
 {
     for (unsigned int i = 0; i < triangle_connectivity.size(); i++)
-    {
         if (triangle_connectivity[i][0] == a || triangle_connectivity[i][1] == a || triangle_connectivity[i][2] == a)
-        {
             if (triangle_connectivity[i][0] == b || triangle_connectivity[i][1] == b || triangle_connectivity[i][2] == b)
-            {
                 if (triangle_connectivity[i][0] == c || triangle_connectivity[i][1] == c || triangle_connectivity[i][2] == c)
                 {
-                    triangle_connectivity[i] = {newA, b, c};
-                    printf("Update triangle [%d, %d, %d]\n ", newA, b, c);
-                    break;
+                    triangle_connectivity[i] = { newA, b, c };
+                    return;
                 }
-            }
-        }
-    }
 }
 
 void cloth_structure::update_triangles(unsigned int oldVerticeIndex, unsigned int newVerticeIndex, std::vector<spring> springsChanged)
@@ -308,28 +241,22 @@ void cloth_structure::update_triangles(unsigned int oldVerticeIndex, unsigned in
     for (unsigned int i = 0; i < springsChanged.size(); i++)
     {
         int neighboor = springsChanged[i].id;
-        printf("Springs to update %d, %d\n", oldVerticeIndex, neighboor);
 
         std::vector<int> found = findAllTriangles(triangle_connectivity, oldVerticeIndex, neighboor);
         if (found[0] == -1 && found[1] == -1)
-        {
-            // printf("ERROR: Try to change a triangle that doesn't exist ! Index: %d, %d\n", oldVerticeIndex, neighboor);
             continue;
-        }
 
         for (int j = 0; j < 2; j++)
         {
             if (found[j] == -1)
                 break;
             int index_found = found[j];
-            printf("Update triangle [%d, %d, %d] to ", triangle_connectivity[index_found][0], triangle_connectivity[index_found][1], triangle_connectivity[index_found][2]);
             if (triangle_connectivity[index_found][0] == oldVerticeIndex)
                 triangle_connectivity[index_found][0] = newVerticeIndex;
             else if (triangle_connectivity[index_found][1] == oldVerticeIndex)
                 triangle_connectivity[index_found][1] = newVerticeIndex;
             else
                 triangle_connectivity[index_found][2] = newVerticeIndex;
-            printf("[%d, %d, %d]\n", triangle_connectivity[index_found][0], triangle_connectivity[index_found][1], triangle_connectivity[index_found][2]);
         }
     }
     shape.uv.push_back(shape.uv[oldVerticeIndex]);
@@ -348,12 +275,11 @@ int cloth_structure::count_empty_side(int vertex, std::vector<int> &values)
         int found = howMuchTriangles(vertex, actNeighboor);
         if (found == 0)
         {
-            printf("ERROR No Triangle found using %d, %d vertices !\n", vertex, actNeighboor);
+            printf("ERROR: No Triangle found using %d, %d vertices !\n", vertex, actNeighboor);
             continue;
         }
         else if (found == 1)
         {
-            printf("The couple has a free side : %d %d\n", vertex, actNeighboor);
             values.push_back(actNeighboor);
             side_no_triangle++;
         }
@@ -385,12 +311,10 @@ bool cloth_structure::should_break(int vertex, std::vector<int> &neighbors, int 
                     if (s.id == s2.id)
                     {
                         neighbors_queue.push(s.id);
-                        std::cout << current_vertex << "->" << s.id << '|';
                         break;
                     }
         }
     }
-    std::cout << std::endl;
 
     return true;
 }
@@ -398,7 +322,7 @@ bool cloth_structure::should_break(int vertex, std::vector<int> &neighbors, int 
 void cloth_structure_drawable::initialize(int N_samples_edge, float len_border_cloth, float start_height_cloth)
 {
     std::vector<vertex_infos> vert_inf = std::vector<vertex_infos>();
-    mesh const cloth_mesh = generate_cloth(N_samples_edge, N_samples_edge, {-(len_border_cloth / 2.0f), 0, start_height_cloth}, len_border_cloth, &vert_inf, false);
+    mesh const cloth_mesh = generate_cloth(N_samples_edge, N_samples_edge, {-(len_border_cloth / 2.0f), 0, start_height_cloth}, &vert_inf, false);
     drawable.clear();
     drawable.initialize_data_on_gpu(cloth_mesh);
     drawable.material.phong.specular = 0.0f;

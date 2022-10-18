@@ -46,7 +46,7 @@ void constraint_structure::update_position(int i, vec3 position)
     fixed_sample[i].position = position;
 }
 
-void constraint_structure::update_positions(int set_index, vec3 position, int scene_type)
+void constraint_structure::update_positions(int set_index, vec3 position)
 {
 
     std::map<size_t, cgp::vec3> set = setA;
