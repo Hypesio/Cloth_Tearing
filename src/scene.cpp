@@ -130,7 +130,7 @@ void scene_structure::display_gui()
 	ImGui::Text("Simulation parameters");
 	ImGui::SliderFloat("Time step", &parameters.dt, 0.01f, 0.2f, "%.3f", 0.01f);
 	ImGui::SliderFloat("Stiffness", &parameters.K, 1.0f, 80.0f, "%.3f", 2.0f);
-	ImGui::SliderFloat("Wind magnitude", &parameters.wind.magnitude, 0, 60, "%.3f", 2.0f);
+	ImGui::SliderFloat("Wind magnitude", &parameters.wind.magnitude, 0, 1, "%.3f", 2.0f);
 	ImGui::SliderFloat("Damping", &parameters.mu, 1.0f, 100.0f);
 	ImGui::SliderFloat("Mass", &parameters.mass_total, 0.2f, 5.0f, "%.3f", 2.0f);
 	ImGui::SliderFloat("Freedom fighter", &parameters.resistance, 0.2f, 20.0f, "%.3f", 1.0f);

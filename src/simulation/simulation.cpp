@@ -5,6 +5,7 @@
 
 using namespace cgp;
 
+// Compute all the forces applied on each vertex
 void simulation_compute_force(cloth_structure &cloth, simulation_parameters const &parameters)
 {
     std::vector<vertex_infos> &vertices = cloth.vertices;
@@ -45,6 +46,7 @@ void simulation_compute_force(cloth_structure &cloth, simulation_parameters cons
     }
 }
 
+// Apply forces and velocities on positions
 void simulation_numerical_integration(cloth_structure &cloth, simulation_parameters const &parameters, float dt)
 {
     std::vector<vertex_infos> &vertices = cloth.vertices;
@@ -61,6 +63,7 @@ void simulation_numerical_integration(cloth_structure &cloth, simulation_paramet
     }
 }
 
+// Apply everything that will constraint a point's position
 void simulation_apply_constraints(cloth_structure &cloth, constraint_structure const &constraint)
 {
     std::vector<vertex_infos> &vertices = cloth.vertices;
@@ -97,7 +100,7 @@ void simulation_apply_constraints(cloth_structure &cloth, constraint_structure c
     }
 }
 
-mat3 get_symetric_matrix(vec3 v, float e = 1.0f)
+inline mat3 get_symetric_matrix(vec3 v, float e = 1.0f)
 {
     mat3 mat = mat3();
     for (int i = 0; i < 3; ++i)
@@ -106,6 +109,7 @@ mat3 get_symetric_matrix(vec3 v, float e = 1.0f)
     return mat / e;
 }
 
+// Tear consecutively a vertex
 bool tear_vertex(int vertex, cloth_structure &cloth, int remove = -1)
 {
     std::vector<int> neighbors;
@@ -146,6 +150,7 @@ bool tear_vertex(int vertex, cloth_structure &cloth, int remove = -1)
     return false;
 }
 
+// Compute tearing on all vertices
 size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &parameters, constraint_structure const &constraint)
 {
     std::vector<int> garbage;
@@ -159,6 +164,7 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
     size_t teared = 0;
     for (size_t i = 0; i < N; ++i)
     {
+        // Can't tear apart a constraint
         if (constraint.fixed_sample.find(i) != constraint.fixed_sample.end())
             continue;
 
@@ -166,6 +172,7 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
         if (vertex.springs.size() < 4)
             continue;
 
+        // Compute the tension on a vertex
         mat3 tension_matrix = mat3();
         vec3 total_strain = vec3();
         for (spring spr : vertex.springs)
@@ -177,7 +184,6 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
             total_strain += strain;
             tension_matrix += get_symetric_matrix(strain);
         }
-
         tension_matrix -= get_symetric_matrix(total_strain);
 
         vec3 max_tension = tension_matrix[0];
@@ -186,179 +192,201 @@ size_t simulation_tearing(cloth_structure &cloth, simulation_parameters const &p
         if (norm(tension_matrix[2]) > norm(max_tension))
             max_tension = tension_matrix[2];
         
-        if (norm(max_tension) > parameters.resistance)
+        // `max_tension` is the maximal tension vector on the vertex
+        // If the vertex can handle more resistance, skip
+        if (norm(max_tension) < parameters.resistance)
+            continue;
+
+        /** Detect wheter or not we are on a border
+         *   \   /
+         *    \ /
+         * --- A ---
+         *    / \
+         *   / X \
+         * If X is a missing triangle (in the list of rendered triangles), then the vertex A is a border
+         */
+        std::vector<int> empty_sides; // List of springs missing a triangle
+        int border = cloth.count_empty_side(i, empty_sides);
+
+        vec3 right_vect = cross(max_tension, normal[i]);
+
+        // Contains the springs we'll tear the vertex on
+        spring left = {-1, 0};
+        spring right = {-1, 0};
+
+        float max_dot_left = -1;
+        float max_dot_right = -1;
+        for (spring spr : vertex.springs)
         {
-            std::vector<int> empty_sides;
-            int border = cloth.count_empty_side(i, empty_sides);
-
-            vec3 right_vect = cross(max_tension, normal[i]);
-
-            spring left = {-1, 0};
-            spring right = {-1, 0};
-
-            float max_dot_left = -1;
-            float max_dot_right = -1;
-            for (spring spr : vertex.springs)
+            vec3 vect = position[spr.id] - position[i];
+            float dot_right = dot(vect, right_vect);
+            if (dot_right > max_dot_right)
             {
-                vec3 vect = position[spr.id] - position[i];
-                float dot_right = dot(vect, right_vect);
-                if (dot_right > max_dot_right)
-                {
-                    max_dot_right = dot_right;
-                    right = spr;
-                }
-                if (-dot_right > max_dot_left)
-                {
-                    max_dot_left = -dot_right;
-                    left = spr;
-                }
+                max_dot_right = dot_right;
+                right = spr;
             }
-
-            if (border)
+            if (-dot_right > max_dot_left)
             {
-                if (cloth.howMuchTriangles(i, right.id) == 1)
-                {
-                    if (cloth.howMuchTriangles(i, left.id) == 1)
-                        continue;
-                    right = left;
-                }
-                else if (max_dot_right > max_dot_left)
-                    left = right;
-                else if (cloth.howMuchTriangles(i, left.id) == 1)
-                    left = right;
-                else
-                    right = left;
+                max_dot_left = -dot_right;
+                left = spr;
             }
-            else if (left.id == -1 || right.id == -1 || left.id == right.id)
-                continue;
+        }
 
-            std::vector<spring> springs = vertex.springs;
-
-            int p[2] = { -1, -1 };
-            std::vector<int> neighbors;
-            int t = 0;
-            for (spring left_spring : vertices[left.id].springs)
+        if (border)
+        {
+            // Safe: can't duplicate a border spring
+            if (cloth.howMuchTriangles(i, right.id) == 1)
             {
-                for (spring sub_spring : vertices[left_spring.id].springs)
-                    if (sub_spring.id == i)
-                    {
-                        p[t++] = left_spring.id;
-                        if (t == 2)
-                            break;
-                    }
-                if (t == 2)
-                    break;
+                // Safe: can't duplicate a border spring
+                if (cloth.howMuchTriangles(i, left.id) == 1)
+                    continue;
+                right = left;
             }
+            else if (max_dot_right > max_dot_left)
+                left = right;
+            // Safe: can't duplicate a border spring
+            else if (cloth.howMuchTriangles(i, left.id) == 1)
+                left = right;
+            else
+                right = left;
+        }
+        // Safe: could'nt find valid springs separate on ?
+        else if (left.id == -1 || right.id == -1 || left.id == right.id)
+            continue;
 
-            t = 0;
-            neighbors.push_back(left.id);
-            neighbors.push_back(p[t]);
-            while (1)
-            {
-                int current = neighbors[neighbors.size() - 1];
-                if (std::find(empty_sides.begin(), empty_sides.end(), current) != empty_sides.end())
-                    break;
-                
-                for (spring sub_spring : vertices[current].springs)
-                {
-                    if (std::find(neighbors.begin(), neighbors.end(), sub_spring.id) == neighbors.end())
-                    {
-                        if (sub_spring.id == right.id)
-                        {
-                            neighbors.push_back(right.id);
-                            break;
-                        }
-                        for (spring sub_sub_spring : vertices[sub_spring.id].springs)
-                        {
-                            if (sub_sub_spring.id == i)
-                            {
-                                neighbors.push_back(sub_spring.id);
-                                break;
-                            }
-                        }
-                        if (neighbors[neighbors.size() - 1] != current)
-                            break;
-                    }
-                }
+        std::vector<spring> springs = vertex.springs;
 
-                if (neighbors[neighbors.size() - 1] == right.id)
-                    break;
-                if (neighbors[neighbors.size() - 1] == current)
+        // line 260 - 320: find the neighbors of one of the vertex that will be created after tearing (graph walk from `left` to `right`)
+        int p[2] = { -1, -1 };
+        std::vector<int> neighbors;
+        int t = 0;
+        for (spring left_spring : vertices[left.id].springs)
+        {
+            for (spring sub_spring : vertices[left_spring.id].springs)
+                if (sub_spring.id == i)
                 {
-                    if (border)
-                        break;
-                    ++t;
+                    p[t++] = left_spring.id;
                     if (t == 2)
                         break;
-                    neighbors.clear();
-                    neighbors.push_back(left.id);
-                    neighbors.push_back(p[t]);
                 }
-            }
-
             if (t == 2)
-            {
-                std::cout << "ERROR: finished possibilities without finding any." << std::endl;
-                continue;
-            }
+                break;
+        }
 
-            vertex.springs = std::vector<spring>();
-            size_t new_id = vertices.size();
-            vertex_infos new_vertex = { vertex.force, vertex.velocity, {} };
-            vertices.push_back(new_vertex);
-            position.push_back(vec3(position[i]));
-            normal.push_back(vec3(normal[i]));
-
-            for (spring spr : springs)
+        t = 0;
+        neighbors.push_back(left.id);
+        neighbors.push_back(p[t]);
+        while (1)
+        {
+            int current = neighbors[neighbors.size() - 1];
+            if (std::find(empty_sides.begin(), empty_sides.end(), current) != empty_sides.end())
+                break;
+            
+            for (spring sub_spring : vertices[current].springs)
             {
-                if (spr.id != left.id && spr.id != right.id)
+                if (std::find(neighbors.begin(), neighbors.end(), sub_spring.id) == neighbors.end())
                 {
-                    if (std::find(neighbors.begin(), neighbors.end(), spr.id) == neighbors.end())
+                    if (sub_spring.id == right.id)
                     {
-                        vertices[new_id].springs.push_back(spr);
-                        for (spring &s_ : vertices[spr.id].springs)
-                            if (s_.id == i)
-                                s_.id = new_id;
+                        neighbors.push_back(right.id);
+                        break;
                     }
-                    else
-                        vertex.springs.push_back(spr);
+                    for (spring sub_sub_spring : vertices[sub_spring.id].springs)
+                    {
+                        if (sub_sub_spring.id == i)
+                        {
+                            neighbors.push_back(sub_spring.id);
+                            break;
+                        }
+                    }
+                    if (neighbors[neighbors.size() - 1] != current)
+                        break;
                 }
             }
 
-            if (vertices[new_id].springs.size() == 0)
-                cloth.update_triangle(i, new_id, left.id, right.id);
-            cloth.update_triangles(i, new_id, vertices[new_id].springs);
+            if (neighbors[neighbors.size() - 1] == right.id)
+                break;
+            if (neighbors[neighbors.size() - 1] == current)
+            {
+                if (border)
+                    break;
+                ++t;
+                if (t == 2)
+                    break;
+                // Couldn't link left to right with one of the side (there is probably a tear in the way), try with the other side
+                neighbors.clear();
+                neighbors.push_back(left.id);
+                neighbors.push_back(p[t]);
+            }
+        }
 
-            vertices[new_id].springs.push_back(spring(left));
-            vertex.springs.push_back(spring(left));
-            spring new_s = spring(left);
+        if (t == 2)
+        {
+            std::cout << "ERROR: finished possibilities without finding any." << std::endl;
+            continue;
+        }
+
+        // Create our new vertex
+        vertex.springs = std::vector<spring>();
+        size_t new_id = vertices.size();
+        vertex_infos new_vertex = { vertex.force, vertex.velocity, {} };
+        vertices.push_back(new_vertex);
+        position.push_back(vec3(position[i]));
+        normal.push_back(vec3(normal[i]));
+
+        // Link neighbors to each vertex
+        for (spring spr : springs)
+        {
+            if (spr.id != left.id && spr.id != right.id)
+            {
+                if (std::find(neighbors.begin(), neighbors.end(), spr.id) == neighbors.end())
+                {
+                    vertices[new_id].springs.push_back(spr);
+                    for (spring &s_ : vertices[spr.id].springs)
+                        if (s_.id == i)
+                            s_.id = new_id;
+                }
+                else
+                    vertex.springs.push_back(spr);
+            }
+        }
+
+        // Update OpenGL's buffer of vertices and triangles
+        if (vertices[new_id].springs.size() == 0)
+            cloth.update_triangle(i, new_id, left.id, right.id);
+        cloth.update_triangles(i, new_id, vertices[new_id].springs);
+
+        // Add to each vertex the spring the original vertex was teared on
+        vertices[new_id].springs.push_back(spring(left));
+        vertex.springs.push_back(spring(left));
+        spring new_s = spring(left);
+        new_s.id = new_id;
+        vertices[left.id].springs.push_back(new_s);
+
+        // We only use one break spring for a border, no need for right
+        if (!border)
+        {
+            // Add to each vertex the second spring the original vertex was teared on
+            vertices[new_id].springs.push_back(spring(right));
+            vertex.springs.push_back(spring(right));
+            new_s = spring(right);
             new_s.id = new_id;
-            vertices[left.id].springs.push_back(new_s);
+            vertices[right.id].springs.push_back(new_s);
+        }
+        ++teared;
 
-            // We only use one break spring for a border, no need for right
-            if (!border)
-            {
-                vertices[new_id].springs.push_back(spring(right));
-                vertex.springs.push_back(spring(right));
-                new_s = spring(right);
-                new_s.id = new_id;
-                vertices[right.id].springs.push_back(new_s);
-            }
-            ++teared;
+        // A constraint can't break
+        if (constraint.fixed_sample.find(left.id) == constraint.fixed_sample.end())
+        {
+            if (tear_vertex(left.id, cloth, cloth.count_empty_side(right.id, garbage) >= 4 ? right.id : -1))
+                ++teared;
+        }
 
-            // A constraint can't break
-            if (constraint.fixed_sample.find(left.id) == constraint.fixed_sample.end())
-            {
-                if (tear_vertex(left.id, cloth, cloth.count_empty_side(right.id, garbage) >= 4 ? right.id : -1))
-                    ++teared;
-            }
-
-            // A constraint can't break
-            if (constraint.fixed_sample.find(right.id) == constraint.fixed_sample.end())
-            {
-                if (!border && tear_vertex(right.id, cloth, cloth.count_empty_side(left.id, garbage) >= 4 ? left.id : -1))
-                    ++teared;
-            }
+        // A constraint can't break
+        if (constraint.fixed_sample.find(right.id) == constraint.fixed_sample.end())
+        {
+            if (!border && tear_vertex(right.id, cloth, cloth.count_empty_side(left.id, garbage) >= 4 ? left.id : -1))
+                ++teared;
         }
     }
 
